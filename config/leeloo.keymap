@@ -3,11 +3,13 @@
  *
  * SPDX-License-Identifier: MIT
  */
+
 #include <behaviors.dtsi>
 #include <dt-bindings/zmk/outputs.h>
 #include <dt-bindings/zmk/keys.h>
 #include <dt-bindings/zmk/bt.h>
 #include <dt-bindings/zmk/ext_power.h>
+
 
 // ( LAYERS ) ------------------------------------------------------------------
 #define QW_M    0       // Main
