@@ -54,7 +54,7 @@ _NOTE:_ this is definitely a WIP as I continue to document and define my keymaps
   W←  LA(LEFT)
 
   (TAP DANCE)
-  TD1 -> td_SCRNSHT
+  TD1 td_SCRNSHT
 
   (REFERENCE)
   ⌘   Command (or Cmd)
@@ -73,7 +73,7 @@ _NOTE:_ this is definitely a WIP as I continue to document and define my keymaps
   ╭─────┬─────┬─────┬─────┬─────┬─────┬───────╮    ╭───────┬─────┬─────┬─────┬─────┬─────┬─────╮
   │     │  F1 │  F2 │  F3 │  F4 │  F5 │       │    │       │ F6  │ F7  │ F8  │ F9  │ F10 │ =+  │
   ├─────┼─────┼─────┼─────┼─────┼─────┤       │    │       ├─────┼─────┼─────┼─────┼─────┼─────┤
-  │     │     │  W→ │     │     │     │       │    │       │     │     │     │     │     │     │
+  │     │     │  W→ │     │     │     │       │    │       │     │  ﱝ  │  ﱜ  │  ﱛ  │ 玲怜│  懶 │
   ├─────┼─────┼─────┼─────┼─────┼─────┤       │    │       ├─────┼─────┼─────┼─────┼─────┼─────┤
   │     │     │     │     │     │     │       │    │       │  ←  │  ↓  │  ↑  │  →  │     │     │
   ├─────┼─────┼─────┼─────┼─────┼─────┤╭─────╮│    │╭─────╮├─────┼─────┼─────┼─────┼─────┼─────┤
@@ -88,7 +88,7 @@ _NOTE:_ this is definitely a WIP as I continue to document and define my keymaps
   W←  LA(LEFT)
 
   (TAP DANCE)
-  TD1 -> td_SCRNSHT
+  TD1 td_SCRNSHT
 
   (REFERENCE)
   ⌘   Command (or Cmd)
