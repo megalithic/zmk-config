@@ -24,12 +24,17 @@ _NOTE:_ this is definitely a WIP as I continue to document and define my keymaps
                     ╰─────┴─────┴─────┤│ F19 ││    ││RT/L2│├─────┴─────┴─────╯
                                       │╰─────╯│    │╰─────╯│
                                       ╰───────╯    ╰───────╯
+  (LAYERS)
+  L1  LOWER (QW_L)
+  L2  RAISE (QW_R)
+  L3  FIRMWARE (QW_F)
+
   (REFERENCE)
-  ⌘ Command (or Cmd)
-  ⇧ Shift
-  ⌥ Option (or Alt)
-  ⌃ Control (or Ctrl)
-  ⎋ Escape (or Esc)
+  ⌘   Command (or Cmd/LG)
+  ⇧   Shift (or Sh/LSh/RSh)
+  ⌥   Option (or Alt/LA)
+  ⌃   Control (or Ctrl/LC)
+  ⎋   Escape (or Esc)
 ```
 
 <details>
@@ -57,10 +62,10 @@ _NOTE:_ this is definitely a WIP as I continue to document and define my keymaps
   TD1 td_SCRNSHT
 
   (REFERENCE)
-  ⌘   Command (or Cmd)
-  ⇧   Shift
-  ⌥   Option (or Alt)
-  ⌃   Control (or Ctrl)
+  ⌘   Command (or Cmd/LG)
+  ⇧   Shift (or Sh/LSh/RSh)
+  ⌥   Option (or Alt/LA)
+  ⌃   Control (or Ctrl/LC)
   ⎋   Escape (or Esc)
 ```
 
@@ -91,10 +96,10 @@ _NOTE:_ this is definitely a WIP as I continue to document and define my keymaps
   TD1 td_SCRNSHT
 
   (REFERENCE)
-  ⌘   Command (or Cmd)
-  ⇧   Shift
-  ⌥   Option (or Alt)
-  ⌃   Control (or Ctrl)
+  ⌘   Command (or Cmd/LG)
+  ⇧   Shift (or Sh/LSh/RSh)
+  ⌥   Option (or Alt/LA)
+  ⌃   Control (or Ctrl/LC)
   ⎋   Escape (or Esc)
 ```
 
@@ -118,11 +123,11 @@ _NOTE:_ this is definitely a WIP as I continue to document and define my keymaps
                                       │╰─────╯│    │╰─────╯│
                                       ╰───────╯    ╰───────╯
   (REFERENCE)
-  ⌘ Command (or Cmd)
-  ⇧ Shift
-  ⌥ Option (or Alt)
-  ⌃ Control (or Ctrl)
-  ⎋ Escape (or Esc)
+  ⌘   Command (or Cmd/LG)
+  ⇧   Shift (or Sh/LSh/RSh)
+  ⌥   Option (or Alt/LA)
+  ⌃   Control (or Ctrl/LC)
+  ⎋   Escape (or Esc)
 ```
 
 </details>
