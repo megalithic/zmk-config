@@ -24,12 +24,12 @@ _NOTE:_ this is definitely a WIP as I continue to document and define my keymaps
                     ╰─────┴─────┴─────┤│ F19 ││    ││RT/L2│├─────┴─────┴─────╯
                                       │╰─────╯│    │╰─────╯│
                                       ╰───────╯    ╰───────╯
-  (LAYERS)
+  [LAYERS]
   L1  LOWER (QW_L)
   L2  RAISE (QW_R)
   L3  FIRMWARE (QW_F)
 
-  (REFERENCE)
+  [REFERENCE]
   ⌘   Command (or Cmd/LG)
   ⇧   Shift (or Sh/LSh/RSh)
   ⌥   Option (or Alt/LA)
@@ -51,22 +51,22 @@ _NOTE:_ this is definitely a WIP as I continue to document and define my keymaps
   │     │     │     │     │     │  W← ││     ││    ││     ││     │     │     │     │     │     │
   ╰─────┴─────┴─────┼─────┼─────┼─────┤╰─────╯│    │╰─────╯├─────┼─────┼─────┼─────┴─────┴─────╯
                     │     │     │     │╭─────╮│    │╭─────╮│     │     │     │
-                    ╰─────┴─────┴─────┤│     ││    ││ TD1 │├─────┴─────┴─────╯
+                    ╰─────┴─────┴─────┤│     ││    ││SCRSH│├─────┴─────┴─────╯
                                       │╰─────╯│    │╰─────╯│
                                       ╰───────╯    ╰───────╯
-  (MACROS)
-  W→  LA(RIGHT)
-  W←  LA(LEFT)
+  [MACROS]
+  W→    LA(RIGHT)
+  W←    LA(LEFT)
 
-  (TAP DANCE)
-  TD1 td_SCRNSHT
+  [TAP DANCE]
+  SCRSH td_SCRNSHT
 
-  (REFERENCE)
-  ⌘   Command (or Cmd/LG)
-  ⇧   Shift (or Sh/LSh/RSh)
-  ⌥   Option (or Alt/LA)
-  ⌃   Control (or Ctrl/LC)
-  ⎋   Escape (or Esc)
+  [REFERENCE]
+  ⌘     Command (or Cmd/LG)
+  ⇧     Shift (or Sh/LSh/RSh)
+  ⌥     Option (or Alt/LA)
+  ⌃     Control (or Ctrl/LC)
+  ⎋     Escape (or Esc)
 ```
 
 </details>
@@ -85,22 +85,23 @@ _NOTE:_ this is definitely a WIP as I continue to document and define my keymaps
   │     │     │     │     │     │  W← ││     ││    ││     ││     │     │     │     │     │     │
   ╰─────┴─────┴─────┼─────┼─────┼─────┤╰─────╯│    │╰─────╯├─────┼─────┼─────┼─────┴─────┴─────╯
                     │     │     │     │╭─────╮│    │╭─────╮│     │     │     │
-                    ╰─────┴─────┴─────┤│     ││    ││ TD1 │├─────┴─────┴─────╯
+                    ╰─────┴─────┴─────┤│     ││    ││SCRSH│├─────┴─────┴─────╯
                                       │╰─────╯│    │╰─────╯│
                                       ╰───────╯    ╰───────╯
-  (MACROS)
-  W→  LA(RIGHT)
-  W←  LA(LEFT)
+  [MACROS]
+  W→    LA(RIGHT)
+  W←    LA(LEFT)
 
-  (TAP DANCE)
-  TD1 td_SCRNSHT
+  [TAP DANCE]
+  SCRSH td_SCRNSHT
+  NT/PR td_NEXT_PREV
 
-  (REFERENCE)
-  ⌘   Command (or Cmd/LG)
-  ⇧   Shift (or Sh/LSh/RSh)
-  ⌥   Option (or Alt/LA)
-  ⌃   Control (or Ctrl/LC)
-  ⎋   Escape (or Esc)
+  [REFERENCE]
+  ⌘     Command (or Cmd/LG)
+  ⇧     Shift (or Sh/LSh/RSh)
+  ⌥     Option (or Alt/LA)
+  ⌃     Control (or Ctrl/LC)
+  ⎋     Escape (or Esc)
 ```
 
 </details>
@@ -122,12 +123,12 @@ _NOTE:_ this is definitely a WIP as I continue to document and define my keymaps
                     ╰─────┴─────┴─────┤│     ││    ││     │├─────┴─────┴─────╯
                                       │╰─────╯│    │╰─────╯│
                                       ╰───────╯    ╰───────╯
-  (REFERENCE)
-  ⌘   Command (or Cmd/LG)
-  ⇧   Shift (or Sh/LSh/RSh)
-  ⌥   Option (or Alt/LA)
-  ⌃   Control (or Ctrl/LC)
-  ⎋   Escape (or Esc)
+  [REFERENCE]
+  ⌘  Command (or Cmd/LG)
+  ⇧  Shift (or Sh/LSh/RSh)
+  ⌥  Option (or Alt/LA)
+  ⌃  Control (or Ctrl/LC)
+  ⎋  Escape (or Esc)
 ```
 
 </details>
