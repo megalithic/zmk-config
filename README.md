@@ -30,11 +30,11 @@ _NOTE:_ this is definitely a WIP as I continue to document and define my keymaps
   L3  FIRMWARE (QW_F)
 
   [REFERENCE]
-  ⌘   Command (or Cmd/LG)
-  ⇧   Shift (or Sh/LSh/RSh)
-  ⌥   Option (or Alt/LA)
-  ⌃   Control (or Ctrl/LC)
-  ⎋   Escape (or Esc)
+  ⌘   Command (or CMD/LGUI/LG)
+  ⇧   Shift (or SH/LSH/RSH)
+  ⌥   Option (or OPT/ALT/LA)
+  ⌃   Control (or CTRL/LC)
+  ⎋   Escape (or ESC)
 ```
 
 <details>
@@ -62,11 +62,11 @@ _NOTE:_ this is definitely a WIP as I continue to document and define my keymaps
   SCRSH td_SCRNSHT
 
   [REFERENCE]
-  ⌘     Command (or Cmd/LG)
-  ⇧     Shift (or Sh/LSh/RSh)
-  ⌥     Option (or Alt/LA)
-  ⌃     Control (or Ctrl/LC)
-  ⎋     Escape (or Esc)
+  ⌘     Command (or CMD/LGUI/LG)
+  ⇧     Shift (or SH/LSH/RSH)
+  ⌥     Option (or OPT/ALT/LA)
+  ⌃     Control (or CTRL/LC)
+  ⎋     Escape (or ESC)
 ```
 
 </details>
@@ -97,11 +97,11 @@ _NOTE:_ this is definitely a WIP as I continue to document and define my keymaps
   NT/PR td_NEXT_PREV
 
   [REFERENCE]
-  ⌘     Command (or Cmd/LG)
-  ⇧     Shift (or Sh/LSh/RSh)
-  ⌥     Option (or Alt/LA)
-  ⌃     Control (or Ctrl/LC)
-  ⎋     Escape (or Esc)
+  ⌘     Command (or CMD/LGUI/LG)
+  ⇧     Shift (or SH/LSH/RSH)
+  ⌥     Option (or OPT/ALT/LA)
+  ⌃     Control (or CTRL/LC)
+  ⎋     Escape (or ESC)
 ```
 
 </details>
@@ -124,11 +124,11 @@ _NOTE:_ this is definitely a WIP as I continue to document and define my keymaps
                                       │╰─────╯│    │╰─────╯│
                                       ╰───────╯    ╰───────╯
   [REFERENCE]
-  ⌘  Command (or Cmd/LG)
-  ⇧  Shift (or Sh/LSh/RSh)
-  ⌥  Option (or Alt/LA)
-  ⌃  Control (or Ctrl/LC)
-  ⎋  Escape (or Esc)
+  ⌘  Command (or CMD/LGUI/LG)
+  ⇧  Shift (or SH/LSH/RSH)
+  ⌥  Option (or OPT/ALT/LA)
+  ⌃  Control (or CTRL/LC)
+  ⎋  Escape (or ESC)
 ```
 
 </details>
