@@ -92,7 +92,7 @@
 &trans  &trans  &kp WLEFT  &trans    &trans    &trans                       &trans       &trans      &trans        &kp LBKT      &kp RBKT       &trans
 &trans  &trans  &trans     &trans    &trans    &trans                       &kp LEFT     &kp DOWN    &kp UP        &kp RIGHT     &trans         &trans
 &trans  &trans  &trans     &trans    &trans    &kp WRIGHT                   &trans       &trans      &trans        &trans        &trans         &trans
-                &trans     &trans    &trans    &trans      &trans   &trans  &td_SCRNSHT  &trans      &trans        &trans
+                &trans     &trans    &trans    &trans      &trans   &trans  &kp RET      &trans      &trans        &trans
       >;
     }; // }}}
 
@@ -102,7 +102,7 @@
 &trans  &trans  &kp WLEFT  &trans    &trans    &trans                       &trans       &kp C_MUTE  &kp C_VOL_DN  &kp C_VOL_UP  &td_NEXT_PREV  &kp C_PLAY_PAUSE
 &trans  &trans  &trans     &trans    &trans    &trans                       &kp LEFT     &kp DOWN    &kp UP        &kp RIGHT     &trans         &trans
 &trans  &trans  &trans     &trans    &trans    &kp WRIGHT                   &trans       &trans      &trans        &trans        &trans         &trans
-                &trans     &trans    &trans    &trans      &trans   &trans  &td_SCRNSHT  &trans      &trans        &trans
+                &trans     &trans    &trans    &trans      &trans   &trans  &kp RET      &trans      &trans        &trans
       >;
     }; // }}}
 
