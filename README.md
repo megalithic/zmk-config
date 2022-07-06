@@ -2,6 +2,16 @@
 
 _NOTE:_ this is definitely a WIP as I continue to document and define my keymaps.
 
+### Build/Flash
+
+Builds and flashes zmk firmware via Docker.
+
+```sh
+make build        # Build only [alias: make b]
+make flash-left   # Build and flash left [alias: make l]
+make flash-right  # Build and flash right [alias: make r]
+```
+
 ### Macros
 
 > Coming soon
@@ -87,53 +97,5 @@ _NOTE:_ this is definitely a WIP as I continue to document and define my keymaps
                     │     │     │     │╭─────╮│    │╭─────╮│     │     │     │
                     ╰─────┴─────┴─────┤│     ││    ││SCRSH│├─────┴─────┴─────╯
                                       │╰─────╯│    │╰─────╯│
-                                      ╰───────╯    ╰───────╯
-  [MACROS]
-  W→    LA(RIGHT)
-  W←    LA(LEFT)
-
-  [TAP DANCE]
-  SCRSH td_SCRNSHT
-  NT/PR td_NEXT_PREV
-
-  [REFERENCE]
-  ⌘     Command (or CMD/LGUI/LG)
-  ⇧     Shift (or SH/LSH/RSH)
-  ⌥     Option (or OPT/ALT/LA)
-  ⌃     Control (or CTRL/LC)
-  ⎋     Escape (or ESC)
+                                      ╰───────╯    ╰─
 ```
-
-</details>
-
-<details>
-<summary>Layer 3: <em><strong><code>FIRMWARE</code></strong></em></summary>
-
-```devicetree
-  ╭─────┬─────┬─────┬─────┬─────┬─────┬───────╮    ╭───────┬─────┬─────┬─────┬─────┬─────┬─────╮
-  │     │     │     │     │     │     │       │    │       │     │     │     │     │     │     │
-  ├─────┼─────┼─────┼─────┼─────┼─────┤       │    │       ├─────┼─────┼─────┼─────┼─────┼─────┤
-  │     │     │     │     │     │     │       │    │       │     │     │     │     │     │     │
-  ├─────┼─────┼─────┼─────┼─────┼─────┤       │    │       ├─────┼─────┼─────┼─────┼─────┼─────┤
-  │     │     │     │     │     │     │       │    │       │     │     │     │     │     │     │
-  ├─────┼─────┼─────┼─────┼─────┼─────┤╭─────╮│    │╭─────╮├─────┼─────┼─────┼─────┼─────┼─────┤
-  │     │     │     │     │     │     ││     ││    ││     ││     │     │     │     │     │     │
-  ╰─────┴─────┴─────┼─────┼─────┼─────┤╰─────╯│    │╰─────╯├─────┼─────┼─────┼─────┴─────┴─────╯
-                    │     │     │     │╭─────╮│    │╭─────╮│     │     │     │
-                    ╰─────┴─────┴─────┤│     ││    ││     │├─────┴─────┴─────╯
-                                      │╰─────╯│    │╰─────╯│
-                                      ╰───────╯    ╰───────╯
-  [REFERENCE]
-  ⌘  Command (or CMD/LGUI/LG)
-  ⇧  Shift (or SH/LSH/RSH)
-  ⌥  Option (or OPT/ALT/LA)
-  ⌃  Control (or CTRL/LC)
-  ⎋  Escape (or ESC)
-```
-
-</details>
-
-### Attribution
-
-- Big up to Joey at [Clickety Split](https://clicketysplit.ca) for crafting this split!
-- Equally huge thanks to [@evantravers](https://evantravers.com) for his vast wealth of knowledge in all things keebs, qmk, zmk, vim, and the list goes on.
