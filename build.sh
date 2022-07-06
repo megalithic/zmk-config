@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Usage:
-#    build.sh --board nice_nano_v2 --left microdox_left --right microdox_right
+#    build.sh --board nice_nano_v2 --left leeloo_left --right leeloo_right
 #
 set -eou pipefail
 
@@ -13,9 +13,18 @@ main() {
 
   while true; do
     case "${1:-}" in
-      --board) board="$2"; shift 2 ;;
-      --left) shield_left="$2"; shift 2 ;;
-      --right) shield_right="$2"; shift 2 ;;
+      --board)
+        board="$2"
+        shift 2
+        ;;
+      --left)
+        shield_left="$2"
+        shift 2
+        ;;
+      --right)
+        shield_right="$2"
+        shift 2
+        ;;
       *) break ;;
     esac
   done
