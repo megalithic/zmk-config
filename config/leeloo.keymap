@@ -78,7 +78,7 @@
     default_layer { // Layer 0: {{{
       bindings = <
 &kp GRAV        &kp N1     &kp N2    &kp N3    &kp N4       &kp N5                        &kp N6     &kp N7    &kp N8     &kp N9   &kp N0    &kp MINUS
-&kp TAB         &td_Q      &kp W     &kp E     &kp R        &kp T                         &kp Y      &kp U     &kp I      &kp O    &kp P     &kp BSLH
+&kp TAB         &kp Q      &kp W     &kp E     &kp R        &kp T                         &kp Y      &kp U     &kp I      &kp O    &kp P     &kp BSLH
 &qm LCTRL ESC   &kp A      &kp S     &kp D     &lt 2 F      &kp G                         &kp H      &kp J     &kp K      &kp L    &kp SEMI  &kp SQT
 &kp LSHFT       &kp Z      &kp X     &kp C     &kp V        &kp B                         &kp N      &kp M     &kp COMMA  &kp DOT  &kp FSLH  &kp RSHFT
                            &kp LALT  &kp LGUI  &lt 1 SPACE  &kp F19  &mo QW_F   &mo QW_F  &lt 2 RET  &kp SPACE  &kp BSPC  &kp DEL
