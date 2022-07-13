@@ -16,10 +16,6 @@
 #define QW_L    1       // Lower
 #define QW_R    2       // Raise
 #define QW_F    3       // Firmware
-/* #define QW_L    1       // Lower */
-/* #define QW_R    2       // Raise */
-/* #define QW_A    3       // Adjust */
-/* #define QW_F    4       // Firmware */
 
 // ( MACROS ) ------------------------------------------------------------------
 #define SCRN   LG(LS(LC(N4)))
