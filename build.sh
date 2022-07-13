@@ -53,8 +53,8 @@ main() {
     west build --pristine -b $board zmk/app -- \
       -DSHIELD=$shield_left \
       -DZMK_CONFIG=/keeb/config
-    cp /keeb/build/zephyr/zmk.uf2 /build/${shield_left}_${board}.uf2.out
-    chown $UID:$GID /build/${shield_left}_${board}.uf2.out
+    cp /keeb/build/zephyr/zmk.uf2 /build/${shield_left}-${board}-zmk.uf2.out
+    chown $UID:$GID /build/${shield_left}-${board}-zmk.uf2.out
     chown $UID:$GID /build
   "
 
@@ -64,8 +64,8 @@ main() {
       west build --pristine -b $board zmk/app -- \
         -DSHIELD=$shield_right \
         -DZMK_CONFIG=/keeb/config
-      cp /keeb/build/zephyr/zmk.uf2 /build/${shield_right}_${board}.uf2.out
-      chown $UID:$GID /build/${shield_right}_${board}.uf2.out
+      cp /keeb/build/zephyr/zmk.uf2 /build/${shield_right}-${board}-zmk.uf2.out
+      chown $UID:$GID /build/${shield_right}-${board}-zmk.uf2.out
     "
   fi
 
@@ -75,7 +75,7 @@ main() {
     -v "$(pwd)/build:/build" \
     "$ZMK_IMAGE" sh -c "$script"
 
-  if [[ ! -e "build/${shield_left}_${board}.uf2.out" ]]; then
+  if [[ ! -e "build/${shield_left}-${board}-zmk.uf2.out" ]]; then
     echo ''
     echo '-- Errors in building'
     exit 1
@@ -84,14 +84,14 @@ main() {
   echo ''
   echo '-- Done'
 
-  rm -f build/${shield_left}_${board}.uf2
-  mv build/${shield_left}_${board}.uf2{.out,}
-  ls -la build/${shield_left}_${board}.uf2
+  rm -f build/${shield_left}-${board}-zmk.uf2
+  mv build/${shield_left}-${board}-zmk.uf2{.out,}
+  ls -la build/${shield_left}-${board}-zmk.uf2
 
   if [[ -f "build/${shield_right}_${board}.uf2.out" ]]; then
-    rm -f build/${shield_right}_${board}.uf2
-    mv build/${shield_right}_${board}.uf2{.out,}
-    ls -la build/${shield_right}_${board}.uf2
+    rm -f build/${shield_right}-${board}-zmk.uf2
+    mv build/${shield_right}-${board}-zmk.uf2{.out,}
+    ls -la build/${shield_right}-${board}-zmk.uf2
   fi
 }
 
