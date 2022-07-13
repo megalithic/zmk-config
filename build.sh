@@ -4,6 +4,9 @@
 #
 set -eou pipefail
 
+# TODO:
+# - https://github.com/zmkfirmware/zmk/blob/main/.github/workflows/build-user-config.yml
+
 # https://hub.docker.com/r/zmkfirmware/zmk-build-arm
 ZMK_IMAGE="zmkfirmware/zmk-build-arm:stable"
 
