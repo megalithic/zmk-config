@@ -43,6 +43,15 @@
       bindings = <&kp>, <&kp>;
     };
 
+    // Backspace normally, Delete when Ctrl is held
+    bspc_del: backspace_delete {
+      compatible = "zmk,behavior-mod-morph";
+      label = "BACKSPACE_DELETE";
+      #binding-cells = <0>;
+      bindings = <&kp BSPC>, <&kp DEL>;
+      mods = <(MOD_LCTL|MOD_RCTL)>;
+    };
+
     td_Q: tap_dance_0 {
       compatible = "zmk,behavior-tap-dance";
       label = "TAP_DANCE_Q";
@@ -77,7 +86,7 @@
 &kp TAB         &kp Q      &kp W      &kp E     &kp R         &kp T                             &kp Y        &kp U         &kp I          &kp O         &kp P          &kp BSLH
 &qm LCTRL ESC   &kp A      &kp S      &kp D     &lt 2 F       &kp G                             &kp H        &kp J         &kp K          &kp L         &kp SEMI       &kp SQT
 &kp LSHFT       &kp Z      &kp X      &kp C     &kp V         &kp B                             &kp N        &kp M         &kp COMMA      &kp DOT       &kp FSLH       &kp RSHFT
-                           &kp LALT   &kp LGUI  &lt 1 SPACE   &kp F19      &mo QW_F   &mo QW_F  &kp RET      &kp SPACE     &kp BSPC       &kp DEL
+                           &kp LALT   &kp LGUI  &lt 1 SPACE   &kp F19      &mo QW_F   &mo QW_F  &kp RET      &kp SPACE     &bspc_del      &kp DEL
       >;
       /* sensor-bindings = <&inc_dec_kp C_VOL_DN C_VOL_UP>; */
     }; // }}}
