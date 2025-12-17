@@ -114,7 +114,7 @@
     firmware_layer { // Layer 3: {{{
       bindings = <
 &bt BT_SEL 0  &bt BT_SEL 1 &bt BT_SEL 2 &bt BT_SEL 3 &bt BT_SEL 4 &trans                             &bt BT_SEL 0 &bt BT_SEL 1 &bt BT_SEL 2 &bt BT_SEL 3 &bt BT_SEL 4 &trans
-&bootloader   &reset       &trans       &trans       &trans       &trans                             &out OUT_BLE &out OUT_USB &out OUT_TOG &trans       &reset       &bootloader
+&bootloader   &sys_reset   &trans       &trans       &trans       &trans                             &out OUT_BLE &out OUT_USB &out OUT_TOG &trans       &sys_reset   &bootloader
 &trans        &trans       &trans       &trans       &trans       &ext_power EP_ON                   &trans       &bt BT_PRV   &trans       &bt BT_NXT   &trans       &trans
 &trans        &trans       &trans       &trans       &trans       &ext_power EP_OFF                  &trans       &trans       &trans       &trans       &kp RSHFT
                            &trans       &trans       &trans       &trans            &trans   &trans  &trans       &trans       &trans       &bt BT_CLR
