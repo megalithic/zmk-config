@@ -123,7 +123,24 @@ Instead of memorizing profile numbers:
 
 ## Output Selection (USB vs Bluetooth)
 
-When connected via USB, ZMK defaults to USB output. You can override this.
+When your keyboard is **both paired via Bluetooth AND plugged into USB**, ZMK needs to know
+which computer should receive your keystrokes. By default, ZMK prefers USB when connected.
+
+### Why Output Selection Matters
+
+| Scenario | Problem | Solution |
+|----------|---------|----------|
+| Laptop paired via BT, plug USB into desktop for charging | Keystrokes go to desktop instead of laptop | Press `Y` to force Bluetooth |
+| Want to use USB for lower latency gaming | Keyboard keeps using Bluetooth | Press `U` to force USB |
+| Switching between docked (USB) and mobile (BT) use | Have to re-pair each time | Use `I` to toggle, or select explicitly |
+
+### Output Selection Keys (Layer 3)
+
+| Key | Binding | What It Does |
+|-----|---------|--------------|
+| `Y` | `&out OUT_BLE` | **Force Bluetooth** — ignores USB even if plugged in |
+| `U` | `&out OUT_USB` | **Force USB** — ignores Bluetooth even if paired |
+| `I` | `&out OUT_TOG` | **Toggle** — switches between BLE and USB |
 
 ### Example: Use Bluetooth While Charging via USB
 
@@ -149,13 +166,23 @@ When connected via USB, ZMK defaults to USB output. You can override this.
    → Keystrokes now go over USB
 ```
 
-### Output Selection Keys (while holding Space+F)
+### Example: Toggle Between Outputs
 
-| Key | Action |
-|-----|--------|
-| `Y` | Force Bluetooth output |
-| `U` | Force USB output |
-| `I` | Toggle between USB/BLE |
+```
+1. Hold: Space + F
+2. Tap: I
+3. Release
+   → Switches from current output to the other
+   → Tap I again to switch back
+```
+
+### Default Behavior
+
+- **USB plugged in**: ZMK automatically uses USB output
+- **USB unplugged**: ZMK uses Bluetooth (if paired)
+- **Both available**: USB takes priority unless you override with `Y`
+
+Your output selection persists until you change it or unplug/disconnect.
 
 ## Troubleshooting
 

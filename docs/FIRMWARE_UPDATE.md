@@ -67,13 +67,87 @@ Clickety Split maintains reference configurations:
 
 - **ZMK Official**: [zmkfirmware/zmk/.../shields/leeloo](https://github.com/zmkfirmware/zmk/tree/main/app/boards/shields/leeloo)
 - **Clickety Split GitHub**: [github.com/ClicketySplit](https://github.com/ClicketySplit)
+- **Build Guides**: [ClicketySplit/build-guides](https://github.com/ClicketySplit/build-guides)
 
 ### Leeloo Versions
 
-| Version | Notes |
-|---------|-------|
-| Leeloo v1 | Original, uses `leeloo_left`/`leeloo_right` shields |
-| Leeloo v2 | Redesigned PCB, same shields work |
+| Version | Shield | Notes |
+|---------|--------|-------|
+| Leeloo v1 | `leeloo_left`/`leeloo_right` | Original design |
+| Leeloo v2 | `leeloo_left`/`leeloo_right` | Redesigned PCB, same shields |
+| Leeloo v2.1 | `clickety_split_leeloo` | Power domain support, RGB LEDs |
+| Leeloo-Micro v1.1 | `clickety_split_leeloo_micro` | Compact version with power domains |
+
+## Power Domain Branch (Leeloo v2.1 / Leeloo-Micro v1.1)
+
+If you have **Leeloo v2.1** or **Leeloo-Micro v1.1** with RGB LEDs, you should use Clickety Split's
+power domain branch for proper power management. This prevents battery drain when the keyboard
+is in sleep mode.
+
+### Why Use the Power Domain Branch?
+
+The main ZMK branch supports RGB LEDs and nice!view displays, but:
+- Requires the bypass solderable jumper
+- Battery capacity drains very quickly
+- Power leaks during sleep mode
+
+The power domain branch fixes these issues by completely cutting power to RGB LEDs during sleep.
+
+### Switching to Power Domain Branch
+
+**Option 1: Update west.yml for Local Builds**
+
+```yaml
+manifest:
+  remotes:
+    - name: zmkfirmware
+      url-base: https://github.com/zmkfirmware
+    - name: clicketysplit
+      url-base: https://github.com/ClicketySplit
+  projects:
+    - name: zmk
+      remote: clicketysplit
+      revision: clickety_split_series_zmk_v3.5_power_domains
+      import: app/west.yml
+  self:
+    path: config
+```
+
+**Option 2: GitHub Actions with Power Domain Branch**
+
+Create/update `.github/workflows/build.yml`:
+
+```yaml
+on:
+  push:
+    paths:
+      - "config/**"
+  pull_request:
+    paths:
+      - "config/**"
+  workflow_dispatch:
+
+jobs:
+  build:
+    uses: ClicketySplit/zmk/.github/workflows/build-user-config.yml@clickety_split_series_zmk_v3.5_power_domains
+```
+
+### Update build.yaml for v2.1 Shields
+
+If using the power domain branch, update your `build.yaml`:
+
+```yaml
+include:
+  - board: nice_nano_v2
+    shield: clickety_split_leeloo_left
+  - board: nice_nano_v2
+    shield: clickety_split_leeloo_right
+```
+
+### Power Domain Branch Links
+
+- **Leeloo v2.1**: [ClicketySplit/zmk/clickety_split_leeloo](https://github.com/ClicketySplit/zmk/tree/clickety_split_series_zmk_v3.5_power_domains/app/boards/shields/clickety_split_leeloo)
+- **Leeloo-Micro v1.1**: [ClicketySplit/zmk/clickety_split_leeloo_micro](https://github.com/ClicketySplit/zmk/tree/clickety_split_series_zmk_v3.5_power_domains/app/boards/shields/clickety_split_leeloo_micro)
 
 ## Build Methods
 
@@ -187,11 +261,47 @@ Then rebuild.
 - [ZMK Changelog](https://github.com/zmkfirmware/zmk/commits/main) - All changes
 - [ZMK Releases](https://github.com/zmkfirmware/zmk/releases) - Tagged releases
 
+## Flashing the Firmware
+
+### nice!nano / Elite-Pi (UF2 Method)
+
+1. Connect the left or right half to USB-C
+2. Double-click the reset button to enter bootloader mode
+   - The keyboard will mount as a USB drive
+3. Drag and drop the `.uf2` file to the drive root
+4. Repeat for the other half
+
+**Important**: Keep track of which nice!nano is left vs right — they need different firmware files!
+
+### Elite-C (QMK Flash Method)
+
+1. Connect the half to USB-C
+2. Double-click reset to enter bootloader
+3. Run `qmk flash` command
+4. Repeat for other half (same `.hex` works for both sides)
+
+## Determining Your Leeloo Version
+
+Not sure which Leeloo you have?
+
+| Feature | Leeloo v1 | Leeloo v2 | Leeloo v2.1 |
+|---------|-----------|-----------|-------------|
+| Power switch location | Less accessible | More accessible | Most accessible |
+| nice!view support | Via wiring | Built-in | Built-in + power domain |
+| RGB LED support | No | Yes (limited) | Yes (proper power mgmt) |
+| Battery pads | Basic | Improved | Through-hole pads |
+
+If you have RGB LEDs and want good battery life, you likely need Leeloo v2.1 with the power domain branch.
+
 ## Quick Reference
 
 ```
-UPDATE ZMK:
+UPDATE ZMK (main branch):
   make clean && make build
+
+UPDATE ZMK (power domain branch):
+  1. Edit config/west.yml to use ClicketySplit remote
+  2. make clean && make build
 
 PIN VERSION:
   Edit config/west.yml, set revision: <tag or commit>
@@ -203,6 +313,9 @@ BUILD LOCALLY:
 
 GITHUB ACTIONS:
   Push to repo, download artifacts from Actions tab
+
+ENTER BOOTLOADER:
+  Double-click reset button (keyboard mounts as USB drive)
 ```
 
 ## References
