@@ -3,7 +3,7 @@ PWD = $(shell pwd)
 # zmk config
 shield_l = leeloo_left
 shield_r = leeloo_right
-board = nice_nano_v2
+board = nice_nano
 
 # output files
 file_l = build/${shield_l}_${board}.uf2

@@ -1,138 +1,418 @@
-# [Leeloo](https://clicketysplit.ca/pages/leeloo)
+# Leeloo ZMK Configuration
 
-Personal ZMK configuration for the Leeloo split keyboard by Clickety Split, running on nice!nano controllers.
+Personal ZMK configuration for the [Leeloo](https://clicketysplit.ca/pages/leeloo) split keyboard by Clickety Split, running on nice!nano v2 controllers.
 
-## Documentation
+## Table of Contents
 
-| Guide | Description |
-|-------|-------------|
-| [Bluetooth](docs/BLUETOOTH.md) | Pairing, profiles, and troubleshooting BLE connections |
-| [Battery](docs/BATTERY.md) | Monitoring battery levels on macOS |
-| [Bootloader](docs/BOOTLOADER.md) | Entering bootloader mode and flashing firmware |
-| [Firmware Updates](docs/FIRMWARE_UPDATE.md) | Updating ZMK and Leeloo shield |
-| [Homerow Mods](docs/HOMEROW_MODS.md) | Configuring homerow modifiers |
+- [Quick Start](#quick-start)
+- [Layers & Layout](#layers--layout)
+- [Flashing Firmware](#flashing-firmware)
+- [Bluetooth Setup](#bluetooth-setup)
+- [Building Firmware](#building-firmware)
+- [Homerow Mods](#homerow-mods)
+- [Troubleshooting](#troubleshooting)
+- [Additional Documentation](#additional-documentation)
 
-## Quick Reference
+---
 
-### Layer Activation
+## Quick Start
 
-| Layer | Name | How to Activate |
-|-------|------|-----------------|
-| **L1** | LOWER | Hold **Space** (left thumb) |
-| **L2** | RAISE | Hold **F** key |
-| **L3** | FIRMWARE | Hold **both encoder buttons** OR hold **Space + F** together |
+### Build & Flash (Docker)
 
-**Note:** Layer 3 activates via conditional layers when L1+L2 are both active (Space + F held simultaneously).
-
-### Step-by-Step Examples
-
-#### Example 1: Enter Bootloader Mode (Left Half)
-
-To flash new firmware to the **left** half while connected via USB:
-
-```
-1. Hold down: Space (left thumb) + F (left index finger)
-   → This activates Layer 3 (L1+L2 conditional)
-
-2. While still holding Space+F, tap: TAB
-   → Left half enters bootloader mode
-
-3. Release all keys
-   → "NICENANO" USB drive appears on your Mac
-
-4. Drag firmware file to NICENANO drive
+```bash
+just build        # Build both halves
+just flash-left   # Flash left half (waits for bootloader)
+just flash-right  # Flash right half
+just all          # Build and flash both
 ```
 
-#### Example 2: Enter Bootloader Mode (Right Half)
-
-To flash new firmware to the **right** half:
-
-```
-1. Hold down: Space (left thumb) + F (left index finger)
-   → This activates Layer 3
-
-2. While still holding Space+F, tap: \ (backslash, right pinky)
-   → Right half enters bootloader mode
-
-3. Release all keys
-   → "NICENANO" USB drive appears on your Mac
-```
-
-#### Example 3: Pair Keyboard to New Bluetooth Device
-
-To pair your Leeloo to a new Mac/iPad/phone:
-
-```
-1. Hold down: Space (left thumb) + F (left index finger)
-   → This activates Layer 3
-
-2. While still holding Space+F, tap: 2 (or any unused profile 1-4)
-   → Selects Bluetooth profile 2
-
-3. Release all keys
-
-4. On your Mac: System Settings → Bluetooth → Find "Leeloo" → Connect
-```
-
-#### Example 4: Switch Between Paired Devices
-
-To switch from your Mac (profile 0) to your iPad (profile 1):
-
-```
-1. Hold down: Space + F
-   → Activates Layer 3
-
-2. While holding, tap: 1
-   → Switches to Bluetooth profile 1
-
-3. Release all keys
-   → Keyboard connects to device on profile 1
-```
-
-#### Example 5: Force Bluetooth Output While USB Connected
-
-When charging via USB but want to type over Bluetooth:
-
-```
-1. Hold down: Space + F
-   → Activates Layer 3
-
-2. While holding, tap: Y
-   → Forces Bluetooth output
-
-3. Release all keys
-   → Keystrokes now go over Bluetooth, not USB
-```
-
-### Bluetooth Pairing
-
-1. Activate Layer 3 (see above)
-2. Press a number key to select a profile (`` ` ``=0, `1`=1, `2`=2, `3`=3, `4`=4)
-3. Find "Leeloo" in your device's Bluetooth settings
-4. Connect and pair
-5. Release Layer 3
-
-### Entering Bootloader Mode
+### Enter Bootloader Mode
 
 | Method | Steps |
 |--------|-------|
-| **Via keymap** | Layer 3 + `TAB` (left) or `\` (right) |
-| **Hardware** | Double-tap the reset button on the nice!nano |
+| **Left half** | Hold **Space + F** → tap **TAB** |
+| **Right half** | Hold **Space + F** → tap **\ (backslash)** |
+| **Hardware** | Double-tap reset button on nice!nano |
 
-A USB drive named "NICENANO" will appear for flashing.
+### Switch Bluetooth Devices
 
-### Build/Flash
+Hold **Space + F** → tap **1-4** to switch profiles
 
-Builds and flashes ZMK firmware via Docker.
+---
 
-```sh
-make build        # Build only [alias: make b]
-make flash-left   # Build and flash left [alias: make l]
-make flash-right  # Build and flash right [alias: make r]
-make clean        # Clean cache for fresh rebuild
+## Layers & Layout
+
+### Layer Overview
+
+| Layer | Name | Activation |
+|-------|------|------------|
+| **0** | DEFAULT | Base layer |
+| **1** | LOWER | Hold **Space** (left thumb) |
+| **2** | RAISE | Hold **F** key |
+| **3** | FIRMWARE | Hold **Space + F** together (conditional) |
+
+### Layer 0: DEFAULT
+
+Base QWERTY layer with homerow mods.
+
+```
+┌──────┬──────┬──────┬──────┬──────┬──────┐                ┌──────┬──────┬──────┬──────┬──────┬──────┐
+│  `~  │  1!  │  2@  │  3#  │  4$  │  5%  │                │  6^  │  7&  │  8*  │  9(  │  0)  │  -_  │
+├──────┼──────┼──────┼──────┼──────┼──────┤                ├──────┼──────┼──────┼──────┼──────┼──────┤
+│ TAB  │  Q   │  W   │  E   │  R   │  T   │                │  Y   │  U   │  I   │  O   │  P   │  \|  │
+├──────┼──────┼──────┼──────┼──────┼──────┤                ├──────┼──────┼──────┼──────┼──────┼──────┤
+│CTL/⎋ │  A   │  S   │  D   │ F/L2 │  G   │                │  H   │  J   │  K   │  L   │  ;:  │  '"  │
+├──────┼──────┼──────┼──────┼──────┼──────┼──────┐  ┌──────┼──────┼──────┼──────┼──────┼──────┼──────┤
+│ LSFT │  Z   │  X   │  C   │  V   │  B   │  L3  │  │  L3  │  N   │  M   │  ,<  │  .>  │  /?  │ RSFT │
+└──────┴──────┴──────┼──────┼──────┼──────┼──────┤  ├──────┼──────┼──────┼──────┼──────┴──────┴──────┘
+                     │ OPT  │ CMD  │SPC/L1│ F19  │  │ENTER │ SPC  │ BSPC │ DEL  │
+                     └──────┴──────┴──────┴──────┘  └──────┴──────┴──────┴──────┘
 ```
 
-## Macros
+**Hold-Tap Keys:**
+- `CTL/⎋` — Tap: Escape, Hold: Left Control
+- `SPC/L1` — Tap: Space, Hold: Layer 1 (LOWER)
+- `F/L2` — Tap: F, Hold: Layer 2 (RAISE)
+- `BSPC` — Tap: Backspace, Ctrl+Tap: Delete
+
+**Homerow Mods (GACS):**
+- Left hand: A=GUI, S=ALT, D=CTRL
+- Right hand: J=SHIFT, K=CTRL, L=ALT, ;=GUI
+
+### Layer 1: LOWER
+
+**Activation:** Hold Space (left thumb)
+
+```
+┌──────┬──────┬──────┬──────┬──────┬──────┐                ┌──────┬──────┬──────┬──────┬──────┬──────┐
+│      │  F1  │  F2  │  F3  │  F4  │  F5  │                │  F6  │  F7  │  F8  │  F9  │ F10  │  =+  │
+├──────┼──────┼──────┼──────┼──────┼──────┤                ├──────┼──────┼──────┼──────┼──────┼──────┤
+│      │      │  W→  │      │      │      │                │      │      │      │  [{  │  ]}  │      │
+├──────┼──────┼──────┼──────┼──────┼──────┤                ├──────┼──────┼──────┼──────┼──────┼──────┤
+│      │      │      │      │      │      │                │  ←   │  ↓   │  ↑   │  →   │      │      │
+├──────┼──────┼──────┼──────┼──────┼──────┼──────┐  ┌──────┼──────┼──────┼──────┼──────┼──────┼──────┤
+│      │      │      │      │      │  W←  │      │  │      │      │      │      │      │      │      │
+└──────┴──────┴──────┼──────┼──────┼──────┼──────┤  ├──────┼──────┼──────┼──────┼──────┴──────┴──────┘
+                     │      │      │██████│      │  │      │      │      │      │
+                     └──────┴──────┴──────┴──────┘  └──────┴──────┴──────┴──────┘
+```
+
+- `W→` — Option+Right (word right)
+- `W←` — Option+Left (word left)
+- Arrow keys on right hand home row
+
+### Layer 2: RAISE
+
+**Activation:** Hold F key
+
+```
+┌──────┬──────┬──────┬──────┬──────┬──────┐                ┌──────┬──────┬──────┬──────┬──────┬──────┐
+│      │  F1  │  F2  │  F3  │  F4  │  F5  │                │  F6  │  F7  │  F8  │  F9  │ F10  │  =+  │
+├──────┼──────┼──────┼──────┼──────┼──────┤                ├──────┼──────┼──────┼──────┼──────┼──────┤
+│      │      │  W→  │      │      │      │                │      │ MUTE │ VOL↓ │ VOL↑ │ ⏭/⏮ │ ⏯   │
+├──────┼──────┼──────┼──────┼──────┼──────┤                ├──────┼──────┼──────┼──────┼──────┼──────┤
+│      │      │      │      │██████│      │                │  ←   │  ↓   │  ↑   │  →   │      │      │
+├──────┼──────┼──────┼──────┼──────┼──────┼──────┐  ┌──────┼──────┼──────┼──────┼──────┼──────┼──────┤
+│      │      │      │      │      │  W←  │      │  │      │      │      │      │      │      │      │
+└──────┴──────┴──────┼──────┼──────┼──────┼──────┤  ├──────┼──────┼──────┼──────┼──────┴──────┴──────┘
+                     │      │      │      │      │  │      │      │      │      │
+                     └──────┴──────┴──────┴──────┘  └──────┴──────┴──────┴──────┘
+```
+
+- Media controls on right side
+- `⏭/⏮` — Tap: Next track, Double-tap: Previous track
+
+### Layer 3: FIRMWARE
+
+**Activation:** Hold Space + F together (conditional layer: L1 + L2)
+
+```
+┌──────┬──────┬──────┬──────┬──────┬──────┐                ┌──────┬──────┬──────┬──────┬──────┬──────┐
+│ BT 0 │ BT 1 │ BT 2 │ BT 3 │ BT 4 │      │                │ BT 0 │ BT 1 │ BT 2 │ BT 3 │ BT 4 │      │
+├──────┼──────┼──────┼──────┼──────┼──────┤                ├──────┼──────┼──────┼──────┼──────┼──────┤
+│ BOOT │RESET │      │      │      │      │                │ BLE  │ USB  │ TOG  │      │RESET │ BOOT │
+├──────┼──────┼──────┼──────┼──────┼──────┤                ├──────┼──────┼──────┼──────┼──────┼──────┤
+│      │      │      │      │██████│EP ON │                │      │ BT ← │      │ BT → │      │      │
+├──────┼──────┼──────┼──────┼──────┼──────┼──────┐  ┌──────┼──────┼──────┼──────┼──────┼──────┼──────┤
+│      │      │      │      │      │EP OFF│      │  │      │      │      │      │      │      │      │
+└──────┴──────┴──────┼──────┼──────┼──────┼──────┤  ├──────┼──────┼──────┼──────┼──────┴──────┴──────┘
+                     │      │      │██████│      │  │      │      │      │BT CLR│
+                     └──────┴──────┴──────┴──────┘  └──────┴──────┴──────┴──────┘
+```
+
+**Bootloader & Reset:**
+| Key | Position | Function |
+|-----|----------|----------|
+| `BOOT` | Top-left (TAB) | Enter bootloader (LEFT half) |
+| `BOOT` | Top-right (\\) | Enter bootloader (RIGHT half) |
+| `RESET` | Second from left (Q) | Soft reset LEFT half |
+| `RESET` | Second from right (P) | Soft reset RIGHT half |
+
+**Bluetooth:**
+| Key | Function |
+|-----|----------|
+| `BT 0-4` | Select Bluetooth profile |
+| `BT ←/→` | Previous/Next profile |
+| `BT CLR` | Clear current profile pairing |
+
+**Output:**
+| Key | Function |
+|-----|----------|
+| `BLE` | Force Bluetooth output |
+| `USB` | Force USB output |
+| `TOG` | Toggle between USB/Bluetooth |
+
+**Power:**
+| Key | Function |
+|-----|----------|
+| `EP ON` | External power ON |
+| `EP OFF` | External power OFF |
+
+---
+
+## Flashing Firmware
+
+### Method 1: Keymap (Keyboard Working)
+
+**Flash LEFT half:**
+```
+1. Hold Space (left thumb) + F (left index)
+   → Layer 3 activates
+
+2. While holding, tap TAB (top-left key)
+   → Left half enters bootloader
+
+3. /Volumes/NICENANO appears on Mac
+
+4. Copy firmware:
+   cp build/leeloo_left-nice_nano-zmk.uf2 /Volumes/NICENANO/
+```
+
+**Flash RIGHT half:**
+```
+1. Hold Space (left thumb) + F (left index)
+   → Layer 3 activates
+
+2. While holding, tap \ (backslash, top-right key)
+   → Right half enters bootloader
+
+3. /Volumes/NICENANO appears on Mac
+
+4. Copy firmware:
+   cp build/leeloo_right-nice_nano-zmk.uf2 /Volumes/NICENANO/
+```
+
+### Method 2: Hardware Reset (Keyboard Unresponsive)
+
+1. Locate the reset button on the nice!nano controller
+2. Double-tap the reset button quickly (within 500ms)
+3. `/Volumes/NICENANO` appears
+4. Copy the .uf2 file to the drive
+
+### Method 3: Reset Pin Short
+
+If no reset button is accessible:
+1. Use tweezers to short **RST** and **GND** pins twice quickly
+2. `/Volumes/NICENANO` appears
+
+### Bootloader Key Positions
+
+```
+LAYER 3 (hold Space + F):
+
+LEFT HALF                                    RIGHT HALF
+┌──────┬──────┬─────────────────┐            ┌─────────────────┬──────┬──────┐
+│ BOOT │RESET │                 │            │                 │RESET │ BOOT │
+│ (TAB)│  (Q) │      ...        │            │      ...        │  (P) │  (\) │
+└──────┴──────┴─────────────────┘            └─────────────────┴──────┴──────┘
+   ↑                                                                     ↑
+   │                                                                     │
+   └── Tap here for LEFT bootloader              Tap here for RIGHT ─────┘
+```
+
+### Which Half to Flash?
+
+| Change Type | Flash |
+|-------------|-------|
+| Keymap only | Left half only (central) |
+| Config changes | Both halves |
+| Firmware update | Both halves |
+
+---
+
+## Bluetooth Setup
+
+### Pairing a New Device
+
+1. **Activate Layer 3:** Hold Space + F
+2. **Select profile:** Tap a number key (` = 0, 1-4 = profiles 1-4)
+3. **Release keys**
+4. **On your device:** Go to Bluetooth settings → Find "Leeloo" → Connect
+
+### Switching Between Devices
+
+```
+1. Hold Space + F
+2. Tap the profile number (1, 2, 3, or 4)
+3. Release — keyboard connects to that device
+```
+
+### Profile Management
+
+| Action | Keys (in Layer 3) |
+|--------|-------------------|
+| Select profile 0 | ` (grave) |
+| Select profile 1-4 | 1, 2, 3, 4 |
+| Previous profile | J |
+| Next profile | L |
+| Clear current profile | DEL (right thumb) |
+
+### Force Output Mode
+
+When connected via USB but want to type over Bluetooth:
+
+```
+1. Hold Space + F
+2. Tap Y (BLE) to force Bluetooth
+   — or tap U (USB) to force USB
+   — or tap I (TOG) to toggle
+3. Release
+```
+
+### Bluetooth Tips
+
+- **Profile 0** is selected by the grave/tilde key (`)
+- **Clear a profile** before re-pairing to a new device
+- **Both halves** share Bluetooth profiles (only flash left for BT changes)
+- See [docs/BLUETOOTH.md](docs/BLUETOOTH.md) for troubleshooting
+
+---
+
+## Building Firmware
+
+### Using Just (Recommended)
+
+```bash
+# Build
+just build          # Build both halves
+just build-left     # Build left only
+just build-right    # Build right only
+
+# Flash (waits for bootloader)
+just flash-left     # Flash left half
+just flash-right    # Flash right half
+just flash-both     # Flash both sequentially
+
+# Combined
+just left           # Build + flash left
+just right          # Build + flash right
+just all            # Build + flash both
+
+# Utilities
+just clean          # Remove .uf2 files
+just clean-all      # Remove everything + docker image
+just list           # Show built firmware files
+
+# Settings reset (clears Bluetooth bonds)
+just build-reset    # Build reset firmware
+just flash-reset    # Flash reset to both halves
+```
+
+### Using Make (Legacy)
+
+```bash
+make build        # Build both halves
+make flash-left   # Build + flash left (alias: make l)
+make flash-right  # Build + flash right (alias: make r)
+make clean        # Clean for fresh rebuild
+```
+
+### Requirements
+
+- **Docker** — via colima on macOS
+- **Just** — task runner (`brew install just` or via nix)
+
+```bash
+# Start Docker (if using colima)
+colima start
+
+# Or use nix-shell
+nix-shell -p colima --run "colima start"
+```
+
+### GitHub Actions
+
+Firmware is also built automatically on push. Download artifacts from the Actions tab.
+
+---
+
+## Homerow Mods
+
+This config uses "timeless" homerow mods with bilateral trigger.
+
+**Left hand (hold for modifier):**
+- A → GUI (Command)
+- S → ALT (Option)
+- D → CTRL
+
+**Right hand (hold for modifier):**
+- J → SHIFT
+- K → CTRL
+- L → ALT (Option)
+- ; → GUI (Command)
+
+**Settings:**
+- Tapping term: 280ms
+- Quick tap: 175ms
+- Require prior idle: 150ms
+
+See [docs/HOMEROW_MODS.md](docs/HOMEROW_MODS.md) for tuning.
+
+---
+
+## Troubleshooting
+
+### NICENANO Drive Doesn't Appear
+
+1. Try a different USB cable (some are charge-only)
+2. Try a different USB port
+3. Double-tap reset faster (within 500ms)
+4. Check if controller is damaged
+
+### Keyboard Not Typing
+
+1. Check Bluetooth connection on your device
+2. Try toggling output: Layer 3 → Y (BLE) or U (USB)
+3. Soft reset: Layer 3 → Q (left) or P (right)
+4. Re-flash firmware
+
+### Bluetooth Won't Pair
+
+1. Clear the profile: Layer 3 → DEL
+2. Remove device from your computer's Bluetooth settings
+3. Re-pair
+
+### Split Halves Not Communicating
+
+1. Ensure both halves have matching firmware versions
+2. Flash both halves with latest firmware
+3. Try settings reset: `just flash-reset` then `just flash-both`
+
+---
+
+## Additional Documentation
+
+| Guide | Description |
+|-------|-------------|
+| [Bluetooth](docs/BLUETOOTH.md) | Pairing, profiles, troubleshooting |
+| [Battery](docs/BATTERY.md) | Monitoring battery on macOS |
+| [Bootloader](docs/BOOTLOADER.md) | Detailed flashing guide |
+| [Firmware Updates](docs/FIRMWARE_UPDATE.md) | Updating ZMK |
+| [Homerow Mods](docs/HOMEROW_MODS.md) | Tuning hold-tap behavior |
+
+---
+
+## Macros Reference
 
 | Macro | Keys | Description |
 |-------|------|-------------|
@@ -141,150 +421,17 @@ make clean        # Clean cache for fresh rebuild
 | `WLEFT` | Option+Left | Word left |
 | `WRIGHT` | Option+Right | Word right |
 
-### Layout
+---
 
-#### Layer 0: _`DEFAULT`_
+## Symbol Reference
 
-```devicetree
-  ╭─────┬─────┬─────┬─────┬─────┬─────┬───────╮    ╭───────┬─────┬─────┬─────┬─────┬─────┬─────╮
-  │  `~ │  1! │  2@ │  3# │  4$ │  5% │       │    │       │ 6^  │ 7&  │ 8*  │ 9(  │ 0)  │ -_  │
-  ├─────┼─────┼─────┼─────┼─────┼─────┤       │    │       ├─────┼─────┼─────┼─────┼─────┼─────┤
-  │ TAB │  Q  │  W  │  E  │  R  │  T  │       │    │       │  Y  │  U  │  I  │  O  │  P  │ \|  │
-  ├─────┼─────┼─────┼─────┼─────┼─────┤       │    │       ├─────┼─────┼─────┼─────┼─────┼─────┤
-  │ LC/⎋│  A  │  S  │  D  │ F/L2│  G  │       │    │       │  H  │  J  │  K  │  L  │ ;:  │ '"  │
-  ├─────┼─────┼─────┼─────┼─────┼─────┤╭─────╮│    │╭─────╮├─────┼─────┼─────┼─────┼─────┼─────┤
-  │ LSH │  Z  │  X  │  C  │  V  │  B  ││  L3 ││    ││ L3  ││  N  │  M  │ ,<  │ .>  │ /?  │ RSH │
-  ╰─────┴─────┴─────┼─────┼─────┼─────┤╰─────╯│    │╰─────╯├─────┼─────┼─────┼─────┴─────┴─────╯
-                    │  ⌥  │  ⌘  │SP/L1│╭─────╮│    │╭─────╮│ SPC │ BSP │ DEL │
-                    ╰─────┴─────┴─────┤│ F19 ││    ││ENTER│├─────┴─────┴─────╯
-                                      │╰─────╯│    │╰─────╯│
-                                      ╰───────╯    ╰───────╯
-  [LAYER ACTIVATION]
-  SP/L1   Hold Space → Layer 1 (LOWER)
-  F/L2    Hold F → Layer 2 (RAISE)
-  L3      Encoder buttons, or Space+F together → Layer 3 (FIRMWARE)
-
-  [HOLD-TAP KEYS]
-  LC/⎋    Tap → Escape, Hold → Left Control
-  SP/L1   Tap → Space, Hold → Layer 1
-  F/L2    Tap → F, Hold → Layer 2
-  BSP     Tap → Backspace, Ctrl+Tap → Delete
-
-  [REFERENCE]
-  ⌘   Command (or CMD/LGUI/LG)
-  ⇧   Shift (or SH/LSH/RSH)
-  ⌥   Option (or OPT/ALT/LA)
-  ⌃   Control (or CTRL/LC)
-  ⎋   Escape (or ESC)
-```
-
-<details>
-<summary>Layer 1: <em><strong><code>LOWER</code></strong></em></summary>
-
-**Activation:** Hold Space (left thumb, `&lt 1 SPACE`)
-
-```devicetree
-  ╭─────┬─────┬─────┬─────┬─────┬─────┬───────╮    ╭───────┬─────┬─────┬─────┬─────┬─────┬─────╮
-  │     │  F1 │  F2 │  F3 │  F4 │  F5 │       │    │       │ F6  │ F7  │ F8  │ F9  │ F10 │ =+  │
-  ├─────┼─────┼─────┼─────┼─────┼─────┤       │    │       ├─────┼─────┼─────┼─────┼─────┼─────┤
-  │     │     │  W→ │     │     │     │       │    │       │     │     │     │ [{  │ ]}  │     │
-  ├─────┼─────┼─────┼─────┼─────┼─────┤       │    │       ├─────┼─────┼─────┼─────┼─────┼─────┤
-  │     │     │     │     │     │     │       │    │       │  ←  │  ↓  │  ↑  │  →  │     │     │
-  ├─────┼─────┼─────┼─────┼─────┼─────┤╭─────╮│    │╭─────╮├─────┼─────┼─────┼─────┼─────┼─────┤
-  │     │     │     │     │     │  W← ││     ││    ││     ││     │     │     │     │     │     │
-  ╰─────┴─────┴─────┼─────┼─────┼─────┤╰─────╯│    │╰─────╯├─────┼─────┼─────┼─────┴─────┴─────╯
-                    │  ⌥  │  ⌘  │ SPC │╭─────╮│    │╭─────╮│     │     │     │
-                    ╰─────┴─────┴─────┤│     ││    ││ENTER│├─────┴─────┴─────╯
-                                      │╰─────╯│    │╰─────╯│
-                                      ╰───────╯    ╰───────╯
-  [MACROS]
-  W→    LA(RIGHT)
-  W←    LA(LEFT)
-
-  [TAP DANCE]
-  ~SCRSH td_SCRNSHT~
-
-  [REFERENCE]
-  ⌘     Command (or CMD/LGUI/LG)
-  ⇧     Shift (or SH/LSH/RSH)
-  ⌥     Option (or OPT/ALT/LA)
-  ⌃     Control (or CTRL/LC)
-  ⎋     Escape (or ESC)
-```
-
-</details>
-
-<details>
-<summary>Layer 3: <em><strong><code>FIRMWARE</code></strong></em> (Bluetooth, Bootloader, System)</summary>
-
-**Activation:** Hold both encoder buttons OR hold Space+F together
-
-```devicetree
-  ╭─────┬─────┬─────┬─────┬─────┬─────┬───────╮    ╭───────┬─────┬─────┬─────┬─────┬─────┬─────╮
-  │ BT0 │ BT1 │ BT2 │ BT3 │ BT4 │     │       │    │       │ BT0 │ BT1 │ BT2 │ BT3 │ BT4 │     │
-  ├─────┼─────┼─────┼─────┼─────┼─────┤       │    │       ├─────┼─────┼─────┼─────┼─────┼─────┤
-  │BOOT │RESET│     │     │     │     │       │    │       │ BLE │ USB │ TOG │     │RESET│BOOT │
-  ├─────┼─────┼─────┼─────┼─────┼─────┤       │    │       ├─────┼─────┼─────┼─────┼─────┼─────┤
-  │     │     │     │     │     │EP_ON│       │    │       │     │BT_PR│     │BT_NX│     │     │
-  ├─────┼─────┼─────┼─────┼─────┼─────┤╭─────╮│    │╭─────╮├─────┼─────┼─────┼─────┼─────┼─────┤
-  │     │     │     │     │     │EP_OF││     ││    ││     ││     │     │     │     │     │     │
-  ╰─────┴─────┴─────┼─────┼─────┼─────┤╰─────╯│    │╰─────╯├─────┼─────┼─────┼─────┴─────┴─────╯
-                    │     │     │     │╭─────╮│    │╭─────╮│     │     │BT_CL│
-                    ╰─────┴─────┴─────┤│     ││    ││     │├─────┴─────┴─────╯
-                                      │╰─────╯│    │╰─────╯│
-                                      ╰───────╯    ╰───────╯
-
-  [BLUETOOTH]
-  BT0-4     Select Bluetooth profile 0-4
-  BT_PR     Previous Bluetooth profile
-  BT_NX     Next Bluetooth profile
-  BT_CL     Clear current profile pairing
-
-  [OUTPUT]
-  BLE       Force Bluetooth output
-  USB       Force USB output
-  TOG       Toggle USB/Bluetooth
-
-  [SYSTEM]
-  BOOT      Enter bootloader mode (for flashing)
-  RESET     Soft reset (reboot controller)
-  EP_ON     External power ON
-  EP_OF     External power OFF
-```
-
-</details>
-
-<details>
-<summary>Layer 2: <em><strong><code>RAISE</code></strong></em></summary>
-
-**Activation:** Hold F key (`&lt 2 F`)
-
-```devicetree
-  ╭─────┬─────┬─────┬─────┬─────┬─────┬───────╮    ╭───────┬─────┬─────┬─────┬─────┬─────┬─────╮
-  │     │  F1 │  F2 │  F3 │  F4 │  F5 │       │    │       │ F6  │ F7  │ F8  │ F9  │ F10 │ =+  │
-  ├─────┼─────┼─────┼─────┼─────┼─────┤       │    │       ├─────┼─────┼─────┼─────┼─────┼─────┤
-  │     │     │  W→ │     │     │     │       │    │       │     │VOLM │VOL↓ │VOL↑ │NT/PR│PL/PA│
-  ├─────┼─────┼─────┼─────┼─────┼─────┤       │    │       ├─────┼─────┼─────┼─────┼─────┼─────┤
-  │     │     │     │     │     │     │       │    │       │  ←  │  ↓  │  ↑  │  →  │     │     │
-  ├─────┼─────┼─────┼─────┼─────┼─────┤╭─────╮│    │╭─────╮├─────┼─────┼─────┼─────┼─────┼─────┤
-  │     │     │     │     │     │  W← ││     ││    ││     ││     │     │     │     │     │     │
-  ╰─────┴─────┴─────┼─────┼─────┼─────┤╰─────╯│    │╰─────╯├─────┼─────┼─────┼─────┴─────┴─────╯
-                    │  ⌥  │  ⌘  │ SPC │╭─────╮│    │╭─────╮│     │     │     │
-                    ╰─────┴─────┴─────┤│     ││    ││ENTER│├─────┴─────┴─────╯
-                                      │╰─────╯│    │╰─────╯│
-                                      ╰───────╯    ╰───────╯
-  [MACROS]
-  W→    LA(RIGHT)
-  W←    LA(LEFT)
-
-  [TAP DANCE]
-  ~SCRSH td_SCRNSHT~
-  NT/PR td_NEXT_PREV
-
-  [REFERENCE]
-  ⌘     Command (or CMD/LGUI/LG)
-  ⇧     Shift (or SH/LSH/RSH)
-  ⌥     Option (or OPT/ALT/LA)
-  ⌃     Control (or CTRL/LC)
-  ⎋     Escape (or ESC)
-```
+| Symbol | Meaning |
+|--------|---------|
+| ⌘ | Command (GUI) |
+| ⌥ | Option (ALT) |
+| ⌃ | Control (CTRL) |
+| ⇧ | Shift |
+| ⎋ | Escape |
+| ← ↓ ↑ → | Arrow keys |
+| ⏯ | Play/Pause |
+| ⏭ ⏮ | Next/Previous track |

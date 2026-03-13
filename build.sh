@@ -91,7 +91,7 @@ main() {
   mv build/${shield_left}-${board}-zmk.uf2{.out,}
   ls -la build/${shield_left}-${board}-zmk.uf2
 
-  if [[ -f "build/${shield_right}_${board}.uf2.out" ]]; then
+  if [[ -f "build/${shield_right}-${board}-zmk.uf2.out" ]]; then
     rm -f build/${shield_right}-${board}-zmk.uf2
     mv build/${shield_right}-${board}-zmk.uf2{.out,}
     ls -la build/${shield_right}-${board}-zmk.uf2
