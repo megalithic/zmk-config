@@ -31,7 +31,7 @@ docker-check:
             colima start
         else
             echo "ERROR: Docker not running and colima not found."
-            echo "Install colima: nix-shell -p colima"
+            echo "Enter the dev shell first: nix develop"
             exit 1
         fi
     fi
@@ -150,11 +150,11 @@ _build-right:
 # Flash Recipes
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Flash left half (waits for bootloader)
-flash-left: (_flash file_left "LEFT")
+# Flash left half (waits for bootloader). Optional: just flash-left path/to/firmware.uf2
+flash-left file=file_left: (_flash file "LEFT")
 
-# Flash right half (waits for bootloader)
-flash-right: (_flash file_right "RIGHT")
+# Flash right half (waits for bootloader). Optional: just flash-right path/to/firmware.uf2
+flash-right file=file_right: (_flash file "RIGHT")
 
 # Flash both halves sequentially
 flash-both: (flash-left) (flash-right)
@@ -175,7 +175,6 @@ _flash file label:
     
     file="{{file}}"
     label="{{label}}"
-    volume="/Volumes/{{volume_name}}"
     
     if [[ ! -f "$file" ]]; then
         echo "ERROR: Firmware not found: $file"
@@ -183,51 +182,82 @@ _flash file label:
         exit 1
     fi
     
+    # Get file size (compatible with both GNU and BSD stat)
+    fsize=$(wc -c < "$file" | awk '{printf "%.1f KB", $1/1024}')
+    
     echo ""
     echo "══════════════════════════════════════════════════════════════"
     echo "  FLASH $label HALF"
     echo "══════════════════════════════════════════════════════════════"
     echo ""
-    echo "  Firmware: $file"
+    echo "  Firmware: $file ($fsize)"
     echo ""
     echo "  To enter bootloader mode:"
     echo "    • Double-tap the RESET button, OR"
     echo "    • Hold F + Space (layers 1+2), then tap top-${label,,} key"
     echo ""
-    echo -n "  Waiting for $volume to mount"
+    echo -n "  Waiting for NICENANO"
     
-    # Wait for volume with timeout (60 seconds)
+    # Wait for NICENANO volume via diskutil (more reliable than checking /Volumes)
     timeout=60
     elapsed=0
-    while [[ ! -d "$volume" ]]; do
-        sleep 0.5
+    dev=""
+    while [[ -z "$dev" ]]; do
+        dev=$(diskutil list 2>/dev/null | grep "NICENANO" | awk '{print $NF}' || true)
+        if [[ -n "$dev" ]]; then
+            break
+        fi
+        sleep 1
         elapsed=$((elapsed + 1))
-        if [[ $elapsed -ge $((timeout * 2)) ]]; then
+        if [[ $elapsed -ge $timeout ]]; then
             echo ""
-            echo "ERROR: Timeout waiting for $volume"
+            echo "ERROR: Timeout waiting for NICENANO (${timeout}s)"
             exit 1
         fi
         echo -n "."
     done
-    echo " ✓"
+    echo " ✓ ($dev)"
     
-    # Small delay to ensure volume is fully mounted
     sleep 0.5
     
-    echo -n "  Copying firmware..."
-    cp "$file" "$volume/"
+    echo -n "  Unmounting..."
+    diskutil unmount "$dev" 2>/dev/null || true
+    echo " ✓"
+    
+    echo -n "  Writing firmware to /dev/$dev..."
+    # Write UF2 directly to raw block device — macOS cp fails on UF2 volumes
+    # with I/O or xattr errors. dd to the block device works reliably.
+    sudo dd if="$file" of="/dev/$dev" bs=512 2>/dev/null
     echo " ✓"
     
     echo -n "  Waiting for reboot"
-    # Wait for volume to disappear (keyboard rebooted)
-    while [[ -d "$volume" ]]; do
-        sleep 0.3
+    sleep 2
+    reboot_timeout=15
+    reboot_elapsed=0
+    while diskutil list 2>/dev/null | grep -q "NICENANO"; do
+        sleep 1
+        reboot_elapsed=$((reboot_elapsed + 1))
+        if [[ $reboot_elapsed -ge $reboot_timeout ]]; then
+            echo " ⚠ (device still in bootloader after ${reboot_timeout}s)"
+            break
+        fi
         echo -n "."
     done
-    echo " ✓"
+    [[ $reboot_elapsed -lt $reboot_timeout ]] && echo " ✓"
+    
+    # Verify firmware booted
+    echo -n "  Verifying firmware..."
+    sleep 3
+    if system_profiler SPUSBDataType 2>/dev/null | grep -q "ZMK Project"; then
+        echo " ✓ (ZMK running)"
+    elif system_profiler SPUSBDataType 2>/dev/null | grep -q "Nice Keyboards"; then
+        echo " ⚠ Still in bootloader — single-tap reset to boot"
+    else
+        echo " ⚠ Not found on USB (ok if peripheral or on battery)"
+    fi
     
     echo ""
-    echo "  ✓ $label half flashed successfully!"
+    echo "  ✓ $label half flashed!"
     echo ""
 
 # ─────────────────────────────────────────────────────────────────────────────
