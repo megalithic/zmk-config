@@ -17,5 +17,5 @@ include:
     shield: leeloo_left
   - board: nice_nano
     shield: leeloo_right
-  # - board: nice_nano_v2
+  # - board: nice_nano
   #   shield: settings_reset

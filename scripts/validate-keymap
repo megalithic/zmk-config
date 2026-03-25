@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+"""
+Validate ZMK keymap file for Leeloo keyboard.
+
+Checks:
+  - Exactly 58 bindings per layer (Leeloo matrix size)
+  - Correct row distribution: 12+12+12+14+8
+  - All referenced behaviors are defined
+  - All layer references are valid
+  - No deprecated syntax (for target Zephyr version)
+
+Exit codes:
+  0 = valid
+  1 = validation errors found
+"""
+
+import re
+import sys
+from pathlib import Path
+
+# Leeloo matrix layout
+EXPECTED_TOTAL = 58
+EXPECTED_ROWS = [12, 12, 12, 14, 8]
+
+# Built-in ZMK behaviors (don't need to be defined in keymap)
+BUILTIN_BEHAVIORS = {
+    'kp', 'mt', 'lt', 'mo', 'to', 'tog', 'sl', 'sk',
+    'trans', 'none', 'reset', 'sys_reset', 'bootloader',
+    'bt', 'out', 'ext_power', 'rgb_ug', 'caps_word',
+    'key_repeat', 'macro', 'gresc',
+}
+
+
+def extract_behaviors(content: str) -> set[str]:
+    """Extract all behavior names defined in the keymap."""
+    # Match patterns like: name: node_name { compatible = "zmk,behavior-*"
+    behaviors = set()
+    for match in re.finditer(r'(\w+):\s*\w+\s*\{[^}]*compatible\s*=\s*"zmk,behavior', content):
+        behaviors.add(match.group(1))
+    return behaviors
+
+
+def extract_layers(content: str) -> list[tuple[str, str]]:
+    """Extract layer names and their bindings blocks."""
+    # Find the keymap section
+    keymap_match = re.search(r'keymap\s*\{.*?compatible\s*=\s*"zmk,keymap";\s*(.*)', content, re.DOTALL)
+    if not keymap_match:
+        return []
+    
+    keymap = keymap_match.group(1)
+    layers = re.findall(r'(\w+)\s*\{[^}]*?bindings\s*=\s*<(.*?)>;', keymap, re.DOTALL)
+    return layers
+
+
+def extract_layer_defines(content: str) -> dict[str, int]:
+    """Extract layer number defines like #define QW_L 1"""
+    defines = {}
+    for match in re.finditer(r'#define\s+(\w+)\s+(\d+)', content):
+        defines[match.group(1)] = int(match.group(2))
+    return defines
+
+
+def get_bindings_per_row(bindings_text: str) -> list[int]:
+    """Count bindings per visual row in the bindings block."""
+    rows = []
+    for line in bindings_text.split('\n'):
+        if '&' in line:
+            count = len(re.findall(r'&\w+', line))
+            if count > 0:
+                rows.append(count)
+    return rows
+
+
+def validate_keymap(filepath: Path, target_zephyr: str = "4.1") -> list[str]:
+    """Validate keymap and return list of errors."""
+    errors = []
+    content = filepath.read_text()
+    
+    # Extract components
+    defined_behaviors = extract_behaviors(content)
+    layers = extract_layers(content)
+    layer_defines = extract_layer_defines(content)
+    
+    if not layers:
+        errors.append("No keymap layers found")
+        return errors
+    
+    # Check each layer
+    layer_names = [name for name, _ in layers]
+    for layer_name, bindings_text in layers:
+        bindings = re.findall(r'&(\w+)', bindings_text)
+        
+        # Check total binding count
+        if len(bindings) != EXPECTED_TOTAL:
+            errors.append(f"{layer_name}: has {len(bindings)} bindings, expected {EXPECTED_TOTAL}")
+        
+        # Check row distribution
+        rows = get_bindings_per_row(bindings_text)
+        if rows != EXPECTED_ROWS:
+            errors.append(f"{layer_name}: row distribution {rows}, expected {EXPECTED_ROWS}")
+        
+        # Check behavior references
+        for behavior in set(bindings):
+            if behavior not in BUILTIN_BEHAVIORS and behavior not in defined_behaviors:
+                errors.append(f"{layer_name}: undefined behavior '&{behavior}'")
+    
+    # Check layer references in bindings (lt, mo, to, tog, sl)
+    layer_refs = re.findall(r'&(?:lt|mo|to|tog|sl)\s+(\w+)', content)
+    for ref in layer_refs:
+        # Could be a number or a define
+        if ref.isdigit():
+            layer_num = int(ref)
+            if layer_num >= len(layers):
+                errors.append(f"Layer reference '{ref}' out of range (only {len(layers)} layers)")
+        elif ref in layer_defines:
+            layer_num = layer_defines[ref]
+            if layer_num >= len(layers):
+                errors.append(f"Layer define '{ref}' ({layer_num}) out of range (only {len(layers)} layers)")
+        else:
+            errors.append(f"Unknown layer reference '{ref}'")
+    
+    # Check conditional layer references
+    cond_layers = re.findall(r'if-layers\s*=\s*<([^>]+)>', content)
+    then_layers = re.findall(r'then-layer\s*=\s*<([^>]+)>', content)
+    for ref_list in cond_layers + then_layers:
+        for ref in ref_list.split():
+            if ref in layer_defines:
+                layer_num = layer_defines[ref]
+            elif ref.isdigit():
+                layer_num = int(ref)
+            else:
+                errors.append(f"Unknown conditional layer reference '{ref}'")
+                continue
+            if layer_num >= len(layers):
+                errors.append(f"Conditional layer reference '{ref}' ({layer_num}) out of range")
+    
+    # Zephyr version-specific checks
+    if target_zephyr >= "4.0":
+        # Check for deprecated underscore properties
+        if re.search(r'tapping_term_ms|quick_tap_ms|global_quick_tap', content):
+            errors.append("Deprecated underscore properties found (use hyphens: tapping-term-ms)")
+    
+    if target_zephyr < "4.0":
+        # Check for missing labels (required in older ZMK)
+        behavior_blocks = re.findall(r'(\w+):\s*\w+\s*\{([^}]+)\}', content)
+        for name, block in behavior_blocks:
+            if 'compatible = "zmk,behavior' in block and 'label' not in block:
+                # Only warn, don't error — some behaviors might not need it
+                pass  # Could add warning here
+    
+    return errors
+
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser(description='Validate ZMK keymap for Leeloo')
+    parser.add_argument('keymap', type=Path, help='Path to keymap file')
+    parser.add_argument('--zephyr', default='4.1', help='Target Zephyr version (default: 4.1)')
+    parser.add_argument('-q', '--quiet', action='store_true', help='Only output errors')
+    args = parser.parse_args()
+    
+    if not args.keymap.exists():
+        print(f"ERROR: File not found: {args.keymap}", file=sys.stderr)
+        sys.exit(1)
+    
+    errors = validate_keymap(args.keymap, args.zephyr)
+    
+    if errors:
+        print(f"✗ {args.keymap.name}: {len(errors)} error(s)", file=sys.stderr)
+        for err in errors:
+            print(f"  - {err}", file=sys.stderr)
+        sys.exit(1)
+    elif not args.quiet:
+        print(f"✓ {args.keymap.name}: valid ({EXPECTED_TOTAL} bindings/layer, {len(extract_layers(args.keymap.read_text()))} layers)")
+    
+    sys.exit(0)
+
+
+if __name__ == '__main__':
+    main()
