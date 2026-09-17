@@ -6,6 +6,9 @@ default:
 check:
     @mise run check
 
+preview:
+    @mise run preview
+
 status:
     @mise run status
 
@@ -18,8 +21,14 @@ build:
 download:
     @mise run download
 
+backup:
+    @mise run backup
+
 flash:
     @mise run flash
+
+restore:
+    @mise run restore
 
 flash-both: flash
 

@@ -8,6 +8,12 @@ repo="${ZMK_GITHUB_REPO:-megalithic/zmk-config}"
 workflow="${ZMK_GITHUB_WORKFLOW:-build.yml}"
 firmware_root="build/firmware"
 latest_run_file="$firmware_root/.latest-run"
+backup_root="firmware-backups"
+latest_backup_file="$backup_root/.latest-backup"
+rollback_backup_file="$backup_root/.rollback-backup"
+active_build_ref=""
+preview_checkout_sha=""
+preview_remote_sha=""
 
 usage() {
 	cat <<'EOF'
@@ -15,11 +21,14 @@ Usage: scripts/firmware <command>
 
 Commands:
   check      Validate active keymap and GitHub build matrix
-  status     Show config, GitHub build, and downloaded firmware status
+  preview    Show exactly what the next GitHub build will contain
+  status     Show config, build, firmware, and backup status
   runs       List recent GitHub firmware builds
-  build      Dispatch GitHub build for remote master, wait, and download
+  build      Preview, confirm, build remote master, and download firmware
   download   Download latest successful firmware for remote master
-  flash      Flash both halves using latest downloaded firmware
+  backup     Back up CURRENT.UF2 from both physical halves
+  flash      Back up both halves, then flash downloaded firmware
+  restore    Restore both halves from the pre-flash rollback backup
 EOF
 }
 
@@ -35,6 +44,35 @@ remote_master_sha() {
 	gh api "repos/$repo/commits/master" --jq .sha
 }
 
+successful_firmware_runs() {
+	gh api --paginate \
+		"repos/$repo/actions/workflows/$workflow/runs?status=success&per_page=100" \
+		--jq '.workflow_runs[] | [.id,.event,.head_branch,.head_sha] | @tsv' |
+		awk -F '\t' '
+            ($2 == "push" && $3 == "master") ||
+            ($2 == "workflow_dispatch" && ($3 == "master" || index($3, "zmk-build-") == 1))
+        '
+}
+
+cleanup_build_ref() {
+	if [[ -z "$active_build_ref" ]]; then
+		return
+	fi
+	if ! gh api --method DELETE "repos/$repo/git/refs/tags/$active_build_ref" >/dev/null; then
+		echo "ERROR: Failed to remove temporary GitHub tag: $active_build_ref" >&2
+		return 1
+	fi
+	active_build_ref=""
+}
+
+cleanup_build_ref_on_exit() {
+	local status=$?
+	if ! cleanup_build_ref; then
+		[[ "$status" -ne 0 ]] || status=1
+	fi
+	exit "$status"
+}
+
 local_master_sha() {
 	if command -v jj >/dev/null 2>&1; then
 		jj log -r master --no-graph -T 'commit_id' 2>/dev/null
@@ -43,11 +81,117 @@ local_master_sha() {
 	fi
 }
 
+checkout_base_sha() {
+	if command -v jj >/dev/null 2>&1; then
+		jj log -r @- --no-graph -T 'commit_id' 2>/dev/null
+	else
+		git rev-parse HEAD
+	fi
+}
+
 working_copy_is_clean() {
 	if command -v jj >/dev/null 2>&1; then
 		[[ -z "$(jj diff --summary)" ]]
 	else
 		[[ -z "$(git status --porcelain)" ]]
+	fi
+}
+
+preview() {
+	require_command python3
+	check
+
+	local local_sha checkout_sha remote_sha previous_success_sha
+	local_sha="$(local_master_sha)"
+	checkout_sha="$(checkout_base_sha)"
+	remote_sha="unavailable"
+	previous_success_sha=""
+	if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+		remote_sha="$(remote_master_sha)"
+		previous_success_sha="$(successful_firmware_runs |
+			awk -F '\t' -v sha="$remote_sha" '
+                    $4 != sha && !found { value = $4; found = 1 }
+                    END { if (found) print value }
+                ')"
+	fi
+	preview_checkout_sha="$checkout_sha"
+	preview_remote_sha="$remote_sha"
+
+	python3 - "$local_sha" "$checkout_sha" "$remote_sha" "$previous_success_sha" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+local_sha, checkout_sha, remote_sha, previous_success_sha = sys.argv[1:]
+matrix = Path("build.yaml").read_text()
+keymap = Path("config/leeloo.keymap").read_text()
+west = Path("config/west.yml").read_text()
+conf = Path("config/leeloo.conf").read_text()
+
+targets = re.findall(
+    r"- board:\s*(\S+)\s*\n\s*shield:\s*(\S+)", matrix
+)
+revision = re.search(r"revision:\s*([0-9a-f]{40})", west).group(1)
+hml = re.search(
+    r"hml:\s+home_row_mod_left\s*\{(.*?)\n\s*\};", keymap, re.DOTALL
+).group(1)
+bindings = re.findall(r"&hml\s+(\S+)\s+(\S+)", keymap)
+
+print("Firmware build preview")
+print(f"  local master:        {local_sha}")
+print(f"  checkout base:       {checkout_sha}")
+print(f"  GitHub master:       {remote_sha}")
+print(f"  previous good SHA:   {previous_success_sha or 'none found'}")
+print(f"  pinned ZMK:          {revision}")
+print("  config inputs:")
+for path in (
+    "config/leeloo.keymap",
+    "config/leeloo.conf",
+    "config/west.yml",
+    "build.yaml",
+    ".github/workflows/build.yml",
+):
+    print(f"    - {path}")
+print("  build outputs:")
+for board, shield in targets:
+    artifact_board = board.replace("/", "_")
+    print(f"    - {shield}: {board} -> {shield}-{artifact_board}-zmk.uf2")
+print("  left home-row mods:")
+for modifier, key in bindings:
+    print(f"    - tap {key}; hold {modifier}")
+for name in ("flavor", "tapping-term-ms", "quick-tap-ms", "require-prior-idle-ms"):
+    match = re.search(rf"{re.escape(name)}\s*=\s*([^;]+);", hml)
+    if match:
+        print(f"    - {name}: {match.group(1).strip('<>\"')}")
+print("  leeloo.conf:")
+for line in conf.splitlines():
+    if line.startswith("CONFIG_"):
+        print(f"    - {line}")
+PY
+
+	if ! working_copy_is_clean; then
+		echo
+		echo "WARNING: Working-copy changes shown above are not included in GitHub builds."
+	fi
+	if [[ "$remote_sha" != "unavailable" && "$checkout_sha" != "$remote_sha" ]]; then
+		echo
+		echo "WARNING: This checkout is not based on GitHub master; it cannot be built by this task."
+	fi
+
+	if [[ "$remote_sha" != "unavailable" ]] && { ! working_copy_is_clean || [[ "$checkout_sha" != "$remote_sha" ]]; }; then
+		echo
+		echo "Checkout differences from GitHub master:"
+		if command -v jj >/dev/null 2>&1; then
+			jj diff --from "$remote_sha" --to @ --summary 2>/dev/null || true
+		else
+			git diff --stat "$remote_sha" 2>/dev/null || true
+		fi
+	elif command -v gh >/dev/null 2>&1 && [[ -n "$previous_success_sha" && "$previous_success_sha" != "$remote_sha" ]]; then
+		echo
+		echo "Build inputs changed since the previous known-good firmware build:"
+		gh api "repos/$repo/compare/$previous_success_sha...$remote_sha" \
+			--jq '.files[].filename | select(. == ".github/workflows/build.yml" or . == "build.yaml" or . == "config/leeloo.keymap" or . == "config/leeloo.conf" or . == "config/west.yml")' \
+			2>/dev/null || true
 	fi
 }
 
@@ -80,6 +224,8 @@ if not workflow_revision:
     errors.append(".github/workflows/build.yml must pin its reusable workflow to a full commit SHA")
 if west_revision and workflow_revision and west_revision.group(1) != workflow_revision.group(1):
     errors.append("config/west.yml and .github/workflows/build.yml pin different ZMK commits")
+if re.search(r"^on:\s*\[[^]]*\bpush\b", workflow, re.MULTILINE):
+    errors.append(".github/workflows/build.yml must not bypass the preview gate on master pushes")
 if re.search(r"&reset(?:\s|$)", keymap):
     errors.append("config/leeloo.keymap uses deprecated &reset; use &sys_reset")
 if re.search(r"(?:tapping_term_ms|quick_tap_ms|global_quick_tap)\s*=", keymap):
@@ -135,6 +281,12 @@ download_run() {
 	local left right
 	left="$(find_firmware "$dest" left)"
 	right="$(find_firmware "$dest" right)"
+	validate_uf2 "$left"
+	validate_uf2 "$right"
+	if cmp -s "$left" "$right"; then
+		echo "ERROR: Left and right firmware are identical in run $run_id." >&2
+		exit 1
+	fi
 	printf '%s\n' "$run_id" >"$latest_run_file"
 
 	echo "Downloaded firmware:"
@@ -144,21 +296,17 @@ download_run() {
 
 latest_successful_run() {
 	local sha="$1"
-	gh run list \
-		--repo "$repo" \
-		--workflow "$workflow" \
-		--branch master \
-		--status success \
-		--limit 20 \
-		--json databaseId,headSha \
-		--jq ".[] | select(.headSha == \"$sha\") | .databaseId" |
-		awk 'NR == 1 { print; exit }'
+	successful_firmware_runs |
+		awk -F '\t' -v sha="$sha" '
+            $4 == sha && !found { value = $1; found = 1 }
+            END { if (found) print value }
+        '
 }
 
 build() {
 	require_command gh
-	check
 	gh auth status >/dev/null
+	preview
 
 	if ! working_copy_is_clean; then
 		echo "ERROR: Working copy has uncommitted changes." >&2
@@ -166,31 +314,63 @@ build() {
 		exit 1
 	fi
 
-	local local_sha remote_sha started run_id attempt
-	local_sha="$(local_master_sha)"
-	remote_sha="$(remote_master_sha)"
-	if [[ "$local_sha" != "$remote_sha" ]]; then
-		echo "ERROR: Local master and GitHub master differ." >&2
-		echo "  local:  $local_sha" >&2
-		echo "  remote: $remote_sha" >&2
-		echo "Push current master before building." >&2
+	local checkout_sha remote_sha started run_id attempt
+	checkout_sha="$preview_checkout_sha"
+	remote_sha="$preview_remote_sha"
+	if [[ "$checkout_sha" != "$remote_sha" ]]; then
+		echo "ERROR: This checkout is not based on GitHub master." >&2
+		echo "  checkout base: $checkout_sha" >&2
+		echo "  GitHub master: $remote_sha" >&2
+		echo "Switch to a clean checkout based on current master before building." >&2
 		exit 1
 	fi
 
+	if [[ "${ZMK_ASSUME_YES:-0}" != "1" ]]; then
+		local answer
+		read -r -p "Dispatch this two-half build? [y/N] " answer
+		if [[ ! "$answer" =~ ^[Yy]$ ]]; then
+			echo "Build cancelled."
+			return
+		fi
+	fi
+
+	local confirmed_checkout_sha confirmed_remote_sha
+	confirmed_checkout_sha="$(checkout_base_sha)"
+	confirmed_remote_sha="$(remote_master_sha)"
+	if ! working_copy_is_clean || [[ "$confirmed_checkout_sha" != "$checkout_sha" ]]; then
+		echo "ERROR: The checkout changed after the preview." >&2
+		echo "  previewed base: $checkout_sha" >&2
+		echo "  current base:   $confirmed_checkout_sha" >&2
+		echo "Run the build again to review the current checkout." >&2
+		exit 1
+	fi
+	if [[ "$confirmed_remote_sha" != "$remote_sha" ]]; then
+		echo "ERROR: GitHub master changed after the preview." >&2
+		echo "  previewed: $remote_sha" >&2
+		echo "  current:   $confirmed_remote_sha" >&2
+		echo "Run the build again to review the new commit." >&2
+		exit 1
+	fi
+
+	active_build_ref="zmk-build-${remote_sha:0:12}-$(date -u +%Y%m%dT%H%M%SZ)"
+	gh api --method POST "repos/$repo/git/refs" \
+		-f ref="refs/tags/$active_build_ref" \
+		-f sha="$remote_sha" >/dev/null
+	trap cleanup_build_ref_on_exit EXIT
+
 	started="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-	echo "Dispatching $workflow for $remote_sha..."
-	gh workflow run "$workflow" --repo "$repo" --ref master
+	echo "Dispatching $workflow for immutable ref $active_build_ref ($remote_sha)..."
+	gh workflow run "$workflow" --repo "$repo" --ref "$active_build_ref"
 
 	run_id=""
 	for ((attempt = 0; attempt < 30; attempt++)); do
 		run_id="$(gh run list \
 			--repo "$repo" \
 			--workflow "$workflow" \
-			--branch master \
 			--event workflow_dispatch \
-			--limit 10 \
-			--json databaseId,headSha,createdAt \
-			--jq ".[] | select(.headSha == \"$remote_sha\" and .createdAt >= \"$started\") | .databaseId" |
+			--limit 20 \
+			--json databaseId,headBranch,headSha,createdAt \
+			--jq ".[] | select(.headBranch == \"$active_build_ref\" and .headSha == \"$remote_sha\" and .createdAt >= \"$started\") | .databaseId" |
 			awk 'NR == 1 { print; exit }')"
 		[[ -n "$run_id" ]] && break
 		sleep 2
@@ -204,10 +384,13 @@ build() {
 	echo "Watching run $run_id..."
 	gh run watch "$run_id" --repo "$repo" --exit-status
 	download_run "$run_id"
+	cleanup_build_ref
+	trap - EXIT
 }
 
 download() {
 	require_command gh
+	require_command python3
 	gh auth status >/dev/null
 
 	local sha run_id
@@ -235,16 +418,228 @@ latest_firmware_dir() {
 	printf '%s\n' "$firmware_root/$run_id"
 }
 
+validate_uf2() {
+	python3 - "$1" <<'PY'
+from pathlib import Path
+import struct
+import sys
+
+path = Path(sys.argv[1])
+data = path.read_bytes()
+if len(data) < 512 or len(data) % 512:
+    raise SystemExit(f"ERROR: {path} is not a block-aligned UF2 file")
+
+UF2_NOT_MAIN_FLASH = 0x00000001
+UF2_FAMILY_ID_PRESENT = 0x00002000
+NRF52840_FAMILY_ID = 0xADA52840
+NRF52840_FLASH_SIZE = 0x100000
+UF2_PAYLOAD_SIZE = 256
+
+block_count = len(data) // 512
+block_numbers = set()
+targets = set()
+has_application_data = False
+for index in range(block_count):
+    block = data[index * 512 : (index + 1) * 512]
+    magic0, magic1, flags, target, payload_size, block_no, declared_count, family = struct.unpack_from(
+        "<IIIIIIII", block
+    )
+    magic_end = struct.unpack_from("<I", block, 508)[0]
+    if (magic0, magic1, magic_end) != (0x0A324655, 0x9E5D5157, 0x0AB16F30):
+        raise SystemExit(f"ERROR: {path} has invalid UF2 magic in block {index}")
+    if flags & UF2_NOT_MAIN_FLASH:
+        raise SystemExit(f"ERROR: {path} has a non-flashable block at index {index}")
+    if payload_size != UF2_PAYLOAD_SIZE:
+        raise SystemExit(
+            f"ERROR: {path} has {payload_size}-byte payload at block {index}; expected {UF2_PAYLOAD_SIZE}"
+        )
+    if target % UF2_PAYLOAD_SIZE:
+        raise SystemExit(f"ERROR: {path} has unaligned target 0x{target:08X} at block {index}")
+    if target + payload_size > NRF52840_FLASH_SIZE:
+        raise SystemExit(f"ERROR: {path} writes beyond nRF52840 flash at block {index}")
+    if not flags & UF2_FAMILY_ID_PRESENT:
+        raise SystemExit(f"ERROR: {path} has no UF2 family ID in block {index}")
+    if family != NRF52840_FAMILY_ID:
+        raise SystemExit(
+            f"ERROR: {path} has family ID 0x{family:08X}; expected nRF52840 0x{NRF52840_FAMILY_ID:08X}"
+        )
+    if block_no >= block_count:
+        raise SystemExit(f"ERROR: {path} has out-of-range block number {block_no}")
+    if declared_count not in (0, block_count):
+        raise SystemExit(
+            f"ERROR: {path} declares {declared_count} blocks but contains {block_count}"
+        )
+    block_numbers.add(block_no)
+    targets.add(target)
+    payload = block[32 : 32 + payload_size]
+    if 0x26000 <= target < 0x100000 and any(byte != 0xFF for byte in payload):
+        has_application_data = True
+
+if len(block_numbers) != block_count:
+    raise SystemExit(f"ERROR: {path} has duplicate or missing UF2 block numbers")
+if len(targets) != block_count:
+    raise SystemExit(f"ERROR: {path} has duplicate UF2 target addresses")
+if not any(0x26000 <= target < NRF52840_FLASH_SIZE for target in targets):
+    raise SystemExit(f"ERROR: {path} does not contain an nRF52840 application region")
+if not has_application_data:
+    raise SystemExit(f"ERROR: {path} has no firmware data in the application region")
+print(f"Verified UF2 structure: {path} ({block_count} blocks, {len(data)} bytes)")
+PY
+}
+
+backup_half() {
+	local side="$1"
+	local dest="$2"
+	local volume="/Volumes/NICENANO"
+	local source="$volume/CURRENT.UF2"
+
+	if [[ -e "$volume" ]]; then
+		echo "ERROR: $volume is already mounted." >&2
+		echo "Eject and disconnect every keyboard half, then retry." >&2
+		exit 1
+	fi
+
+	echo
+	echo "CURRENT.UF2 backup: $side half"
+	echo "  1. Keep the other half disconnected."
+	echo "  2. Connect the physical $side half over USB."
+	echo "  3. Double-tap its hardware reset button."
+	read -r -p "Press Enter after completing those steps... "
+
+	local attempt
+	for ((attempt = 0; attempt < 90; attempt++)); do
+		[[ -f "$source" ]] && break
+		sleep 1
+	done
+	if [[ ! -f "$source" ]]; then
+		echo "ERROR: Timed out waiting for $source." >&2
+		exit 1
+	fi
+
+	cp "$source" "$dest/${side}-current.uf2"
+	validate_uf2 "$dest/${side}-current.uf2"
+	sync
+
+	if command -v diskutil >/dev/null 2>&1; then
+		diskutil eject "$volume" >/dev/null
+	fi
+	echo "Backed up $side half. Disconnect it before continuing."
+	read -r -p "Press Enter when the $side half is disconnected... "
+}
+
+backup() {
+	require_command python3
+	require_command shasum
+
+	local timestamp dest temp
+	timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+	dest="$backup_root/$timestamp"
+	temp="$backup_root/.backup-$timestamp-$$"
+	mkdir -p "$temp"
+
+	backup_half left "$temp"
+	backup_half right "$temp"
+
+	if cmp -s "$temp/left-current.uf2" "$temp/right-current.uf2"; then
+		echo "ERROR: Both backups are identical; the same physical half may have been copied twice." >&2
+		echo "Incomplete backup retained at $temp" >&2
+		exit 1
+	fi
+
+	(
+		cd "$temp"
+		shasum -a 256 left-current.uf2 right-current.uf2 >SHA256SUMS
+	)
+	cat >"$temp/README.txt" <<EOF
+Verified device backup created $timestamp
+
+left-current.uf2  - CURRENT.UF2 copied from the physical left half
+right-current.uf2 - CURRENT.UF2 copied from the physical right half
+SHA256SUMS        - checksums captured after both copies were validated
+
+These files passed UF2 structure checks. They are application rollback images
+read from the devices, not builds from safe/. They do not replace a hardware
+programmer backup of the bootloader and all controller state.
+EOF
+	mv "$temp" "$dest"
+	mkdir -p "$backup_root"
+	printf '%s\n' "$dest" >"$latest_backup_file"
+
+	echo
+	echo "Verified current-firmware backup: $dest"
+	echo "  left:  $dest/left-current.uf2"
+	echo "  right: $dest/right-current.uf2"
+}
+
+latest_backup_dir() {
+	if [[ ! -f "$latest_backup_file" ]]; then
+		echo "ERROR: No verified CURRENT.UF2 backup found." >&2
+		exit 1
+	fi
+
+	local dir
+	dir="$(cat "$latest_backup_file")"
+	if [[ ! -f "$dir/left-current.uf2" || ! -f "$dir/right-current.uf2" || ! -f "$dir/SHA256SUMS" ]]; then
+		echo "ERROR: Latest backup is incomplete: $dir" >&2
+		exit 1
+	fi
+	if ! (cd "$dir" && shasum -a 256 -c SHA256SUMS >/dev/null); then
+		echo "ERROR: Backup checksum verification failed: $dir" >&2
+		return 1
+	fi
+	printf '%s\n' "$dir"
+}
+
 flash() {
 	require_command zmk-flasher
 	require_command python3
 
-	local dir left right
+	local dir left right backup_dir
 	dir="$(latest_firmware_dir)"
 	left="$(find_firmware "$dir" left)"
 	right="$(find_firmware "$dir" right)"
 
+	echo "Before flashing, both physical controllers must be backed up."
+	backup
+	if ! backup_dir="$(latest_backup_dir)"; then
+		echo "ERROR: Refusing to flash without a verified rollback backup." >&2
+		exit 1
+	fi
+	printf '%s\n' "$backup_dir" >"$rollback_backup_file"
+
+	echo
 	echo "Flashing Leeloo v1.13 with:"
+	echo "  central/left:      $left"
+	echo "  peripheral/right: $right"
+	echo "  rollback backup:  $backup_dir"
+	echo
+	echo "Connect only the half requested by zmk-flasher, then double-tap its reset button."
+	zmk-flasher flash -l "$left" -r "$right"
+}
+
+restore() {
+	require_command zmk-flasher
+	require_command shasum
+
+	if [[ ! -f "$rollback_backup_file" ]]; then
+		echo "ERROR: No pre-flash rollback backup is recorded." >&2
+		exit 1
+	fi
+
+	local dir left right
+	dir="$(cat "$rollback_backup_file")"
+	left="$dir/left-current.uf2"
+	right="$dir/right-current.uf2"
+	if [[ ! -f "$left" || ! -f "$right" || ! -f "$dir/SHA256SUMS" ]]; then
+		echo "ERROR: Rollback backup is incomplete: $dir" >&2
+		exit 1
+	fi
+	if ! (cd "$dir" && shasum -a 256 -c SHA256SUMS >/dev/null); then
+		echo "ERROR: Rollback checksum verification failed: $dir" >&2
+		exit 1
+	fi
+
+	echo "Restoring the pre-flash application firmware:"
 	echo "  central/left:      $left"
 	echo "  peripheral/right: $right"
 	echo
@@ -283,6 +678,21 @@ PY
 		find_firmware "$dir" left
 		find_firmware "$dir" right
 	fi
+
+	if [[ -f "$latest_backup_file" ]]; then
+		echo
+		echo "Latest verified device backup:"
+		latest_backup_dir
+	else
+		echo
+		echo "Latest verified device backup: none"
+	fi
+
+	if [[ -f "$rollback_backup_file" ]]; then
+		echo "Pre-flash rollback backup: $(cat "$rollback_backup_file")"
+	else
+		echo "Pre-flash rollback backup: none"
+	fi
 }
 
 runs() {
@@ -292,11 +702,14 @@ runs() {
 
 case "${1:-}" in
 check) check ;;
+preview) preview ;;
 status) status ;;
 runs) runs ;;
 build) build ;;
 download) download ;;
+backup) backup ;;
 flash) flash ;;
+restore) restore ;;
 -h | --help | help | "") usage ;;
 *)
 	echo "ERROR: Unknown command: $1" >&2

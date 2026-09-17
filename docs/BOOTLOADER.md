@@ -24,18 +24,20 @@ Or build a newly pushed configuration:
 mise run build
 ```
 
-## Flash both halves with zmk-flasher
+## Back up and flash both halves
 
-Start the interactive flasher:
+Start the guarded flasher:
 
 ```sh
 mise run flash
 ```
 
-The task supplies separate files for:
+The task first captures and validates `CURRENT.UF2` from each physical controller. It then supplies separate new files for:
 
 - Central/left: `leeloo_left-*.uf2`
 - Peripheral/right: `leeloo_right-*.uf2`
+
+You will enter bootloader mode twice per half: once for the backup and once for the flash.
 
 ### Left half
 
@@ -58,6 +60,18 @@ The task supplies separate files for:
 7. Wait for reboot.
 
 Flash both halves from the same GitHub Actions run.
+
+## Restore the pre-flash firmware
+
+If the new build is unusable, run:
+
+```sh
+mise run restore
+```
+
+The task verifies the recorded checksums and uses `zmk-flasher` to restore the left and right application-firmware readbacks captured immediately before the last flash. Connect only the requested physical half.
+
+`CURRENT.UF2` is an application rollback image, not a complete hardware-programmer backup of the bootloader and all controller state. The old images under `safe/` are separate recovery artifacts and are not verified device backups.
 
 ## Manual fallback
 

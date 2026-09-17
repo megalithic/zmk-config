@@ -40,14 +40,17 @@ gh auth login
 ```sh
 mise tasks          # List project tasks
 mise run check      # Validate keymap and build targets
-mise run status     # Show timing, build, and firmware status
+mise run preview    # Show exactly what both builds will contain
+mise run status     # Show config, build, firmware, and backup status
 mise run runs       # List recent GitHub firmware builds
-mise run build      # Build remote master and download firmware
+mise run build      # Preview, confirm, build, and download firmware
 mise run download   # Download latest successful master firmware
-mise run flash      # Flash both halves with zmk-flasher
+mise run backup     # Save CURRENT.UF2 from both physical halves
+mise run flash      # Back up both halves, then flash them
+mise run restore    # Restore the pre-flash rollback pair
 ```
 
-`mise run build` uses GitHub Actions. It does not compile uncommitted local files. Commit and push the configuration first.
+`mise run build` first prints the commit, pinned ZMK revision, inputs, outputs, and active behavior settings. It asks for confirmation, rechecks GitHub `master`, and dispatches through a temporary immutable tag so the run cannot drift from the previewed commit. The tag is removed after the run. Pushing `master` alone does not start a build. The task rejects working-copy changes, so commit and push the configuration first.
 
 With Jujutsu:
 
@@ -59,9 +62,21 @@ jj new master
 mise run build
 ```
 
-The final `jj new master` creates an empty working-copy commit. The build task rejects a working copy with uncommitted changes so GitHub cannot accidentally build older configuration.
+The final `jj new master` creates an empty working-copy commit based on the pushed `master`. The build task rejects working-copy changes and checkouts based on any other commit, so its preview matches the remote commit it dispatches.
 
-Downloaded firmware is stored under `build/firmware/<run-id>/`. The selected run is recorded in `build/firmware/.latest-run`.
+Downloaded firmware is stored under `build/firmware/<run-id>/`. Both UF2 files must pass the same block, family-ID, and distinct-halves checks used for device backups before the run is recorded in `build/firmware/.latest-run`.
+
+## Protect the installed firmware
+
+Before flashing, `mise run flash` requires a fresh readback from both physical controllers. It copies each mounted controller's `CURRENT.UF2`, validates every aligned 256-byte main-flash block and its nRF52840 family ID, verifies that the two files differ, and records SHA-256 checksums under `firmware-backups/<timestamp>/`.
+
+The backup is local and ignored by Git. `firmware-backups/.rollback-backup` points to the pair captured immediately before the last flash. Restore it with:
+
+```sh
+mise run restore
+```
+
+These readbacks provide an application-firmware rollback. They are not complete hardware-programmer backups of the bootloader and all controller state. Files under `safe/` remain old recovery images, not verified device backups.
 
 ## Flash both halves
 
@@ -71,7 +86,7 @@ Run:
 mise run flash
 ```
 
-`zmk-flasher` prompts for the central/left half and peripheral/right half in sequence.
+The task first prompts for the central/left and peripheral/right halves to capture their current firmware. After both backups pass validation, `zmk-flasher` prompts for each half again to install the new build.
 
 For each prompt:
 
@@ -100,7 +115,7 @@ See [docs/BOOTLOADER.md](docs/BOOTLOADER.md) for recovery details.
 | `scripts/firmware` | Build, download, and flash automation |
 | `scripts/validate-keymap` | Static Leeloo keymap validation |
 
-Files under `safe/` and `support/` are recovery artifacts. They are not inputs to normal builds.
+Files under `safe/` and `support/` are old recovery artifacts, not verified device backups. They are not inputs to normal builds.
 
 ## Left home-row mods
 

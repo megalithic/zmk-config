@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help check status runs build download flash flash-both \
+.PHONY: help check preview status runs build download backup flash restore flash-both \
 	build-left build-right flash-left flash-right
 
 help:
@@ -9,13 +9,16 @@ help:
 check:
 	@mise run check
 
+preview:
+	@mise run preview
+
 status:
 	@mise run status
 
 runs:
 	@mise run runs
 
-build download flash:
+build download backup flash restore:
 	@mise run "$@"
 
 flash-both: flash

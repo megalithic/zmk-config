@@ -10,8 +10,12 @@ python = "3.13"
 description = "Validate Leeloo keymap and build matrix"
 run = "./scripts/firmware check"
 
+[tasks.preview]
+description = "Preview both firmware targets and changes before building"
+run = "./scripts/firmware preview"
+
 [tasks.status]
-description = "Show config, GitHub build, and downloaded firmware status"
+description = "Show config, build, firmware, and backup status"
 run = "./scripts/firmware status"
 
 [tasks.runs]
@@ -26,6 +30,14 @@ run = "./scripts/firmware build"
 description = "Download firmware from latest successful build of remote master"
 run = "./scripts/firmware download"
 
+[tasks.backup]
+description = "Back up CURRENT.UF2 from both physical keyboard halves"
+run = "./scripts/firmware backup"
+
 [tasks.flash]
-description = "Interactively flash both Leeloo halves with zmk-flasher"
+description = "Back up both halves, then flash with zmk-flasher"
 run = "./scripts/firmware flash"
+
+[tasks.restore]
+description = "Restore both halves from the pre-flash rollback backup"
+run = "./scripts/firmware restore"

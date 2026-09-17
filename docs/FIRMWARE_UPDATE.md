@@ -31,6 +31,7 @@ gh auth login
 
 ```sh
 mise run check
+mise run preview
 mise run status
 ```
 
@@ -46,7 +47,7 @@ Validation checks:
 
 ## Commit and push with Jujutsu
 
-GitHub Actions can build only pushed files:
+GitHub Actions can build only pushed files. A push does not start a `master` build; `mise run build` previews and dispatches it:
 
 ```sh
 jj describe -m "fix: update Leeloo firmware configuration"
@@ -55,7 +56,7 @@ jj git push --bookmark master
 jj new master
 ```
 
-`jj new master` leaves an empty working-copy commit on the pushed `master`. `mise run build` refuses to run when local changes have not been pushed.
+`jj new master` leaves an empty working-copy commit on the pushed `master`. `mise run build` refuses to run if the working copy has changes or is based on any commit other than current GitHub `master`.
 
 ## Build and download firmware
 
@@ -66,11 +67,13 @@ mise run build
 This task:
 
 1. Validates active configuration.
-2. Confirms local and GitHub `master` match.
-3. Dispatches `.github/workflows/build.yml`.
-4. Waits for both halves to build.
-5. Downloads the `firmware` artifact.
-6. Records the selected run in `build/firmware/.latest-run`.
+2. Shows the exact commit, ZMK pin, inputs, outputs, and active behavior settings.
+3. Confirms local and GitHub `master` match.
+4. Asks before dispatching `.github/workflows/build.yml`.
+5. Rechecks GitHub `master` and dispatches an immutable temporary tag for the previewed commit.
+6. Waits for both halves to build.
+7. Downloads the `firmware` artifact and validates both UF2 files (nRF52840 family ID, aligned 256-byte blocks, distinct halves).
+8. Records the run in `build/firmware/.latest-run` and removes the temporary tag.
 
 Inspect recent runs with:
 
@@ -84,13 +87,21 @@ Download the latest successful firmware for current remote `master` without star
 mise run download
 ```
 
-## Flash firmware
+## Back up and flash firmware
 
 ```sh
 mise run flash
 ```
 
-The task passes the left and right UF2 files to `zmk-flasher`. Follow its prompts and double-tap each physical controller's reset button when requested.
+Before flashing, the task captures `CURRENT.UF2` from each physical controller. It validates every aligned 256-byte main-flash block and its nRF52840 family ID, rejects identical left and right files, writes SHA-256 checksums, and stores the pair under `firmware-backups/<timestamp>/`. Only then does it pass the new left and right firmware to `zmk-flasher`.
+
+If the new firmware is unusable, restore the pair captured immediately before the flash:
+
+```sh
+mise run restore
+```
+
+The readbacks provide an application-firmware rollback. They are not full hardware-programmer backups of the bootloader and all controller state. Files under `safe/` are old recovery images, not verified device backups.
 
 See [BOOTLOADER.md](BOOTLOADER.md) for exact steps.
 
@@ -131,9 +142,9 @@ Cause: older keymap used `&reset`.
 
 Fix: use `&sys_reset`.
 
-## Recovery firmware
+## Old recovery firmware
 
-Files under `safe/` and `support/` are old recovery artifacts. They are not normal build inputs and may not match current keymap or ZMK versions.
+Files under `safe/` and `support/` are old recovery artifacts. They are not verified device backups, are not normal build inputs, and may not match current keymap or ZMK versions.
 
 Settings-reset firmware erases Bluetooth bonds. Do not flash it during a routine keymap update.
 

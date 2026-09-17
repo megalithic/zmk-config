@@ -1,4 +1,6 @@
 /build
+/firmware-backups/*
+!/firmware-backups/README.md
 /.cache
 .DS_Store
 /_docs

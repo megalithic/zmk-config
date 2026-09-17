@@ -1,4 +1,5 @@
-on: [push, pull_request, workflow_dispatch]
+# Master builds are dispatched by `mise run build` after its preview gate.
+on: [pull_request, workflow_dispatch]
 permissions:
   contents: read
 jobs:
