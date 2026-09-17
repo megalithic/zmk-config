@@ -1,437 +1,173 @@
-# Leeloo ZMK Configuration
+# Leeloo ZMK configuration
 
-Personal ZMK configuration for the [Leeloo](https://clicketysplit.ca/pages/leeloo) split keyboard by Clickety Split, running on nice!nano v2 controllers.
+ZMK configuration for a Clickety Split Leeloo PCB v1.13 with two nice!nano v2 controllers.
 
-## Table of Contents
+## Hardware and build targets
 
-- [Quick Start](#quick-start)
-- [Layers & Layout](#layers--layout)
-- [Flashing Firmware](#flashing-firmware)
-- [Bluetooth Setup](#bluetooth-setup)
-- [Building Firmware](#building-firmware)
-- [Homerow Mods](#homerow-mods)
-- [Troubleshooting](#troubleshooting)
-- [Additional Documentation](#additional-documentation)
+| Role | ZMK shield | Board |
+| --- | --- | --- |
+| Left, central | `leeloo_left` | `nice_nano//zmk` |
+| Right, peripheral | `leeloo_right` | `nice_nano//zmk` |
 
----
+Leeloo v1.13 uses the upstream `leeloo_left` and `leeloo_right` shields. The `clickety_split_leeloo_*` shields are for newer Leeloo revisions and are not used here.
 
-## Quick Start
+`config/west.yml` pins the ZMK source revision. `build.yaml` defines the two GitHub Actions builds.
 
-### Build & Flash (Docker)
+## Setup
 
-```bash
-just build        # Build both halves
-just flash-left   # Flash left half (waits for bootloader)
-just flash-right  # Flash right half
-just all          # Build and flash both
+Install [mise](https://mise.jdx.dev/), then trust and install this project's tools:
+
+```sh
+mise trust
+mise install
 ```
 
-### Enter Bootloader Mode
+This installs:
 
-| Method | Steps |
-|--------|-------|
-| **Left half** | Hold **Space + F** → tap **TAB** |
-| **Right half** | Hold **Space + F** → tap **\ (backslash)** |
-| **Hardware** | Double-tap reset button on nice!nano |
+- Go
+- GitHub CLI
+- Python
+- [`zmk-flasher`](https://github.com/new-er/zmk-flasher) v0.0.4
 
-### Switch Bluetooth Devices
+Authenticate GitHub CLI once:
 
-Hold **Space + F** → tap **1-4** to switch profiles
-
----
-
-## Layers & Layout
-
-### Layer Overview
-
-| Layer | Name | Activation |
-|-------|------|------------|
-| **0** | DEFAULT | Base layer |
-| **1** | LOWER | Hold **Space** (left thumb) |
-| **2** | RAISE | Hold **F** key |
-| **3** | FIRMWARE | Hold **Space + F** together (conditional) |
-
-### Layer 0: DEFAULT
-
-Base QWERTY layer with homerow mods.
-
-```
-┌──────┬──────┬──────┬──────┬──────┬──────┐                ┌──────┬──────┬──────┬──────┬──────┬──────┐
-│  `~  │  1!  │  2@  │  3#  │  4$  │  5%  │                │  6^  │  7&  │  8*  │  9(  │  0)  │  -_  │
-├──────┼──────┼──────┼──────┼──────┼──────┤                ├──────┼──────┼──────┼──────┼──────┼──────┤
-│ TAB  │  Q   │  W   │  E   │  R   │  T   │                │  Y   │  U   │  I   │  O   │  P   │  \|  │
-├──────┼──────┼──────┼──────┼──────┼──────┤                ├──────┼──────┼──────┼──────┼──────┼──────┤
-│CTL/⎋ │  A   │  S   │  D   │ F/L2 │  G   │                │  H   │  J   │  K   │  L   │  ;:  │  '"  │
-├──────┼──────┼──────┼──────┼──────┼──────┼──────┐  ┌──────┼──────┼──────┼──────┼──────┼──────┼──────┤
-│ LSFT │  Z   │  X   │  C   │  V   │  B   │  L3  │  │  L3  │  N   │  M   │  ,<  │  .>  │  /?  │ RSFT │
-└──────┴──────┴──────┼──────┼──────┼──────┼──────┤  ├──────┼──────┼──────┼──────┼──────┴──────┴──────┘
-                     │ OPT  │ CMD  │SPC/L1│ F19  │  │ENTER │ SPC  │ BSPC │ DEL  │
-                     └──────┴──────┴──────┴──────┘  └──────┴──────┴──────┴──────┘
+```sh
+gh auth login
 ```
 
-**Hold-Tap Keys:**
-- `CTL/⎋` — Tap: Escape, Hold: Left Control
-- `SPC/L1` — Tap: Space, Hold: Layer 1 (LOWER)
-- `F/L2` — Tap: F, Hold: Layer 2 (RAISE)
-- `BSPC` — Tap: Backspace, Ctrl+Tap: Delete
+## Mise tasks
 
-**Homerow Mods (GACS):**
-- Left hand: A=GUI, S=ALT, D=CTRL
-- Right hand: J=SHIFT, K=CTRL, L=ALT, ;=GUI
-
-### Layer 1: LOWER
-
-**Activation:** Hold Space (left thumb)
-
-```
-┌──────┬──────┬──────┬──────┬──────┬──────┐                ┌──────┬──────┬──────┬──────┬──────┬──────┐
-│      │  F1  │  F2  │  F3  │  F4  │  F5  │                │  F6  │  F7  │  F8  │  F9  │ F10  │  =+  │
-├──────┼──────┼──────┼──────┼──────┼──────┤                ├──────┼──────┼──────┼──────┼──────┼──────┤
-│      │      │  W→  │      │      │      │                │      │      │      │  [{  │  ]}  │      │
-├──────┼──────┼──────┼──────┼──────┼──────┤                ├──────┼──────┼──────┼──────┼──────┼──────┤
-│      │      │      │      │      │      │                │  ←   │  ↓   │  ↑   │  →   │      │      │
-├──────┼──────┼──────┼──────┼──────┼──────┼──────┐  ┌──────┼──────┼──────┼──────┼──────┼──────┼──────┤
-│      │      │      │      │      │  W←  │      │  │      │      │      │      │      │      │      │
-└──────┴──────┴──────┼──────┼──────┼──────┼──────┤  ├──────┼──────┼──────┼──────┼──────┴──────┴──────┘
-                     │      │      │██████│      │  │      │      │      │      │
-                     └──────┴──────┴──────┴──────┘  └──────┴──────┴──────┴──────┘
+```sh
+mise tasks          # List project tasks
+mise run check      # Validate keymap and build targets
+mise run status     # Show timing, build, and firmware status
+mise run runs       # List recent GitHub firmware builds
+mise run build      # Build remote master and download firmware
+mise run download   # Download latest successful master firmware
+mise run flash      # Flash both halves with zmk-flasher
 ```
 
-- `W→` — Option+Right (word right)
-- `W←` — Option+Left (word left)
-- Arrow keys on right hand home row
+`mise run build` uses GitHub Actions. It does not compile uncommitted local files. Commit and push the configuration first.
 
-### Layer 2: RAISE
+With Jujutsu:
 
-**Activation:** Hold F key
-
-```
-┌──────┬──────┬──────┬──────┬──────┬──────┐                ┌──────┬──────┬──────┬──────┬──────┬──────┐
-│      │  F1  │  F2  │  F3  │  F4  │  F5  │                │  F6  │  F7  │  F8  │  F9  │ F10  │  =+  │
-├──────┼──────┼──────┼──────┼──────┼──────┤                ├──────┼──────┼──────┼──────┼──────┼──────┤
-│      │      │  W→  │      │      │      │                │      │ MUTE │ VOL↓ │ VOL↑ │ ⏭/⏮ │ ⏯   │
-├──────┼──────┼──────┼──────┼──────┼──────┤                ├──────┼──────┼──────┼──────┼──────┼──────┤
-│      │      │      │      │██████│      │                │  ←   │  ↓   │  ↑   │  →   │      │      │
-├──────┼──────┼──────┼──────┼──────┼──────┼──────┐  ┌──────┼──────┼──────┼──────┼──────┼──────┼──────┤
-│      │      │      │      │      │  W←  │      │  │      │      │      │      │      │      │      │
-└──────┴──────┴──────┼──────┼──────┼──────┼──────┤  ├──────┼──────┼──────┼──────┼──────┴──────┴──────┘
-                     │      │      │      │      │  │      │      │      │      │
-                     └──────┴──────┴──────┴──────┘  └──────┴──────┴──────┴──────┘
+```sh
+jj describe -m "fix: update Leeloo firmware configuration"
+jj bookmark set master -r @
+jj git push --bookmark master
+jj new master
+mise run build
 ```
 
-- Media controls on right side
-- `⏭/⏮` — Tap: Next track, Double-tap: Previous track
+The final `jj new master` creates an empty working-copy commit. The build task rejects a working copy with uncommitted changes so GitHub cannot accidentally build older configuration.
 
-### Layer 3: FIRMWARE
+Downloaded firmware is stored under `build/firmware/<run-id>/`. The selected run is recorded in `build/firmware/.latest-run`.
 
-**Activation:** Hold Space + F together (conditional layer: L1 + L2)
+## Flash both halves
 
-```
-┌──────┬──────┬──────┬──────┬──────┬──────┐                ┌──────┬──────┬──────┬──────┬──────┬──────┐
-│ BT 0 │ BT 1 │ BT 2 │ BT 3 │ BT 4 │      │                │ BT 0 │ BT 1 │ BT 2 │ BT 3 │ BT 4 │      │
-├──────┼──────┼──────┼──────┼──────┼──────┤                ├──────┼──────┼──────┼──────┼──────┼──────┤
-│ BOOT │RESET │      │      │      │      │                │ BLE  │ USB  │ TOG  │      │RESET │ BOOT │
-├──────┼──────┼──────┼──────┼──────┼──────┤                ├──────┼──────┼──────┼──────┼──────┼──────┤
-│      │      │      │      │██████│EP ON │                │      │ BT ← │      │ BT → │      │      │
-├──────┼──────┼──────┼──────┼──────┼──────┼──────┐  ┌──────┼──────┼──────┼──────┼──────┼──────┼──────┤
-│      │      │      │      │      │EP OFF│      │  │      │      │      │      │      │      │      │
-└──────┴──────┴──────┼──────┼──────┼──────┼──────┤  ├──────┼──────┼──────┼──────┼──────┴──────┴──────┘
-                     │      │      │██████│      │  │      │      │      │BT CLR│
-                     └──────┴──────┴──────┴──────┘  └──────┴──────┴──────┴──────┘
+Run:
+
+```sh
+mise run flash
 ```
 
-**Bootloader & Reset:**
-| Key | Position | Function |
-|-----|----------|----------|
-| `BOOT` | Top-left (TAB) | Enter bootloader (LEFT half) |
-| `BOOT` | Top-right (\\) | Enter bootloader (RIGHT half) |
-| `RESET` | Second from left (Q) | Soft reset LEFT half |
-| `RESET` | Second from right (P) | Soft reset RIGHT half |
+`zmk-flasher` prompts for the central/left half and peripheral/right half in sequence.
 
-**Bluetooth:**
-| Key | Function |
-|-----|----------|
-| `BT 0-4` | Select Bluetooth profile |
-| `BT ←/→` | Previous/Next profile |
-| `BT CLR` | Clear current profile pairing |
+For each prompt:
 
-**Output:**
-| Key | Function |
-|-----|----------|
-| `BLE` | Force Bluetooth output |
-| `USB` | Force USB output |
-| `TOG` | Toggle between USB/Bluetooth |
+1. Connect only the requested half over USB.
+2. Quickly double-tap that half's nice!nano reset button.
+3. Wait for the `NICENANO` volume.
+4. Confirm the flash in `zmk-flasher`.
+5. Wait for the controller to reboot before connecting the other half.
 
-**Power:**
-| Key | Function |
-|-----|----------|
-| `EP ON` | External power ON |
-| `EP OFF` | External power OFF |
+The task passes separate left and right UF2 files explicitly. Do not use one half's file on the other half.
 
----
+Hardware reset is the reliable way to enter each controller's bootloader. Split key events are normally processed by the left central controller, so firmware-layer bootloader bindings should not be used to identify which physical controller will reboot.
 
-## Flashing Firmware
+See [docs/BOOTLOADER.md](docs/BOOTLOADER.md) for recovery details.
 
-### Method 1: Keymap (Keyboard Working)
+## Active configuration
 
-**Flash LEFT half:**
-```
-1. Hold Space (left thumb) + F (left index)
-   → Layer 3 activates
+| File | Purpose |
+| --- | --- |
+| `config/leeloo.keymap` | Active layers and behaviors |
+| `config/leeloo.conf` | ZMK Kconfig options |
+| `config/west.yml` | Pinned ZMK source revision |
+| `build.yaml` | GitHub Actions board/shield matrix |
+| `.github/workflows/build.yml` | Reusable ZMK build workflow |
+| `mise.toml` | Project tools and common tasks |
+| `scripts/firmware` | Build, download, and flash automation |
+| `scripts/validate-keymap` | Static Leeloo keymap validation |
 
-2. While holding, tap TAB (top-left key)
-   → Left half enters bootloader
+Files under `safe/` and `support/` are recovery artifacts. They are not inputs to normal builds.
 
-3. /Volumes/NICENANO appears on Mac
+## Left home-row mods
 
-4. Copy firmware:
-   cp build/leeloo_left-nice_nano-zmk.uf2 /Volumes/NICENANO/
-```
+Only the left home row uses home-row modifiers:
 
-**Flash RIGHT half:**
-```
-1. Hold Space (left thumb) + F (left index)
-   → Layer 3 activates
+| Key | Tap | Hold |
+| --- | --- | --- |
+| A | A | Left Command/GUI |
+| S | S | Left Shift |
+| D | D | Left Option/Alt |
 
-2. While holding, tap \ (backslash, top-right key)
-   → Right half enters bootloader
+Current left-side behavior:
 
-3. /Volumes/NICENANO appears on Mac
-
-4. Copy firmware:
-   cp build/leeloo_right-nice_nano-zmk.uf2 /Volumes/NICENANO/
+```dts
+flavor = "balanced";
+tapping-term-ms = <350>;
+quick-tap-ms = <200>;
+require-prior-idle-ms = <200>;
+hold-trigger-on-release;
 ```
 
-### Method 2: Hardware Reset (Keyboard Unresponsive)
+Only opposite-hand positions trigger an early hold. The longer 350 ms tapping term and 200 ms prior-idle window favor taps and reduce accidental Command activation on A.
 
-1. Locate the reset button on the nice!nano controller
-2. Double-tap the reset button quickly (within 500ms)
-3. `/Volumes/NICENANO` appears
-4. Copy the .uf2 file to the drive
+If cross-hand rolls still produce Command shortcuts, change only `hml` to `flavor = "tap-preferred";`. That prevents interruption from resolving a hold early, but deliberate Command chords then require holding A past the tapping term.
 
-### Method 3: Reset Pin Short
+See [docs/HOMEROW_MODS.md](docs/HOMEROW_MODS.md) for tuning details.
 
-If no reset button is accessible:
-1. Use tweezers to short **RST** and **GND** pins twice quickly
-2. `/Volumes/NICENANO` appears
+## Layers
 
-### Bootloader Key Positions
+| Layer | Activation | Purpose |
+| --- | --- | --- |
+| 0, QWERTY | Default | Typing and left home-row mods |
+| 1, Lower | Hold Space | Navigation and symbols |
+| 2, Raise | Hold F | Navigation and media |
+| 3, Firmware | Hold Space and F | Bluetooth, output, reset, bootloader |
 
-```
-LAYER 3 (hold Space + F):
-
-LEFT HALF                                    RIGHT HALF
-┌──────┬──────┬─────────────────┐            ┌─────────────────┬──────┬──────┐
-│ BOOT │RESET │                 │            │                 │RESET │ BOOT │
-│ (TAB)│  (Q) │      ...        │            │      ...        │  (P) │  (\) │
-└──────┴──────┴─────────────────┘            └─────────────────┴──────┴──────┘
-   ↑                                                                     ↑
-   │                                                                     │
-   └── Tap here for LEFT bootloader              Tap here for RIGHT ─────┘
-```
-
-### Which Half to Flash?
-
-| Change Type | Flash |
-|-------------|-------|
-| Keymap only | Left half only (central) |
-| Config changes | Both halves |
-| Firmware update | Both halves |
-
----
-
-## Bluetooth Setup
-
-### Pairing a New Device
-
-1. **Activate Layer 3:** Hold Space + F
-2. **Select profile:** Tap a number key (` = 0, 1-4 = profiles 1-4)
-3. **Release keys**
-4. **On your device:** Go to Bluetooth settings → Find "Leeloo" → Connect
-
-### Switching Between Devices
-
-```
-1. Hold Space + F
-2. Tap the profile number (1, 2, 3, or 4)
-3. Release — keyboard connects to that device
-```
-
-### Profile Management
-
-| Action | Keys (in Layer 3) |
-|--------|-------------------|
-| Select profile 0 | ` (grave) |
-| Select profile 1-4 | 1, 2, 3, 4 |
-| Previous profile | J |
-| Next profile | L |
-| Clear current profile | DEL (right thumb) |
-
-### Force Output Mode
-
-When connected via USB but want to type over Bluetooth:
-
-```
-1. Hold Space + F
-2. Tap Y (BLE) to force Bluetooth
-   — or tap U (USB) to force USB
-   — or tap I (TOG) to toggle
-3. Release
-```
-
-### Bluetooth Tips
-
-- **Profile 0** is selected by the grave/tilde key (`)
-- **Clear a profile** before re-pairing to a new device
-- **Both halves** share Bluetooth profiles (only flash left for BT changes)
-- See [docs/BLUETOOTH.md](docs/BLUETOOTH.md) for troubleshooting
-
----
-
-## Building Firmware
-
-### Using Just (Recommended)
-
-```bash
-# Build
-just build          # Build both halves
-just build-left     # Build left only
-just build-right    # Build right only
-
-# Flash (waits for bootloader)
-just flash-left     # Flash left half
-just flash-right    # Flash right half
-just flash-both     # Flash both sequentially
-
-# Combined
-just left           # Build + flash left
-just right          # Build + flash right
-just all            # Build + flash both
-
-# Utilities
-just clean          # Remove .uf2 files
-just clean-all      # Remove everything + docker image
-just list           # Show built firmware files
-
-# Settings reset (clears Bluetooth bonds)
-just build-reset    # Build reset firmware
-just flash-reset    # Flash reset to both halves
-```
-
-### Using Make (Legacy)
-
-```bash
-make build        # Build both halves
-make flash-left   # Build + flash left (alias: make l)
-make flash-right  # Build + flash right (alias: make r)
-make clean        # Clean for fresh rebuild
-```
-
-### Requirements
-
-- **Docker** — via colima on macOS
-- **Just** — task runner (`brew install just` or via nix)
-
-```bash
-# Start Docker (if using colima)
-colima start
-
-# Or use nix-shell
-nix-shell -p colima --run "colima start"
-```
-
-### GitHub Actions
-
-Firmware is also built automatically on push. Download artifacts from the Actions tab.
-
----
-
-## Homerow Mods
-
-This config uses "timeless" homerow mods with bilateral trigger.
-
-**Left hand (hold for modifier):**
-- A → GUI (Command)
-- S → ALT (Option)
-- D → CTRL
-
-**Right hand (hold for modifier):**
-- J → SHIFT
-- K → CTRL
-- L → ALT (Option)
-- ; → GUI (Command)
-
-**Settings:**
-- Tapping term: 280ms
-- Quick tap: 175ms
-- Require prior idle: 150ms
-
-See [docs/HOMEROW_MODS.md](docs/HOMEROW_MODS.md) for tuning.
-
----
+The firmware layer contains `&bootloader` and `&sys_reset`, but hardware reset is recommended when flashing a specific physical half.
 
 ## Troubleshooting
 
-### NICENANO Drive Doesn't Appear
+### GitHub build says board has a ZMK variant
 
-1. Try a different USB cable (some are charge-only)
-2. Try a different USB port
-3. Double-tap reset faster (within 500ms)
-4. Check if controller is damaged
+`build.yaml` must use:
 
-### Keyboard Not Typing
+```yaml
+board: nice_nano//zmk
+```
 
-1. Check Bluetooth connection on your device
-2. Try toggling output: Layer 3 → Y (BLE) or U (USB)
-3. Soft reset: Layer 3 → Q (left) or P (right)
-4. Re-flash firmware
+`nice_nano_v2` is an obsolete Zephyr 3.5 board name. Bare `nice_nano` selects the stock Zephyr board instead of ZMK's board variant.
 
-### Bluetooth Won't Pair
+### `NICENANO` does not appear
 
-1. Clear the profile: Layer 3 → DEL
-2. Remove device from your computer's Bluetooth settings
-3. Re-pair
+- Use a data-capable USB cable.
+- Connect the half directly rather than through a hub.
+- Double-tap reset faster.
+- Disconnect the other half while flashing.
 
-### Split Halves Not Communicating
+### Halves do not communicate
 
-1. Ensure both halves have matching firmware versions
-2. Flash both halves with latest firmware
-3. Try settings reset: `just flash-reset` then `just flash-both`
+- Flash both halves from the same GitHub Actions run.
+- Power-cycle both halves.
+- Use settings-reset firmware only when Bluetooth bonds must be erased.
 
----
+## References
 
-## Additional Documentation
-
-| Guide | Description |
-|-------|-------------|
-| [Bluetooth](docs/BLUETOOTH.md) | Pairing, profiles, troubleshooting |
-| [Battery](docs/BATTERY.md) | Monitoring battery on macOS |
-| [Bootloader](docs/BOOTLOADER.md) | Detailed flashing guide |
-| [Firmware Updates](docs/FIRMWARE_UPDATE.md) | Updating ZMK |
-| [Homerow Mods](docs/HOMEROW_MODS.md) | Tuning hold-tap behavior |
-
----
-
-## Macros Reference
-
-| Macro | Keys | Description |
-|-------|------|-------------|
-| `SCRN` | Cmd+Shift+Ctrl+4 | Screenshot to clipboard |
-| `SCR2` | Cmd+Shift+4 | Screenshot to file |
-| `WLEFT` | Option+Left | Word left |
-| `WRIGHT` | Option+Right | Word right |
-
----
-
-## Symbol Reference
-
-| Symbol | Meaning |
-|--------|---------|
-| ⌘ | Command (GUI) |
-| ⌥ | Option (ALT) |
-| ⌃ | Control (CTRL) |
-| ⇧ | Shift |
-| ⎋ | Escape |
-| ← ↓ ↑ → | Arrow keys |
-| ⏯ | Play/Pause |
-| ⏭ ⏮ | Next/Previous track |
+- [Leeloo v1.0/v1.13 build guide](https://github.com/ClicketySplit/build-guides/blob/main/leeloo/README.md)
+- [ZMK Leeloo shield](https://github.com/zmkfirmware/zmk/tree/main/app/boards/shields/leeloo)
+- [ZMK hold-tap behavior](https://zmk.dev/docs/keymaps/behaviors/hold-tap)
+- [ZMK Zephyr 4.1 migration](https://zmk.dev/blog/2025/12/09/zephyr-4-1)
+- [`zmk-flasher`](https://github.com/new-er/zmk-flasher)

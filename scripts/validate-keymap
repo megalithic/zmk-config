@@ -136,7 +136,9 @@ def validate_keymap(filepath: Path, target_zephyr: str = "4.1") -> list[str]:
     
     # Zephyr version-specific checks
     if target_zephyr >= "4.0":
-        # Check for deprecated underscore properties
+        # Check for deprecated behavior and property names.
+        if re.search(r'&reset(?:\s|$)', content):
+            errors.append("Deprecated '&reset' behavior found (use '&sys_reset')")
         if re.search(r'tapping_term_ms|quick_tap_ms|global_quick_tap', content):
             errors.append("Deprecated underscore properties found (use hyphens: tapping-term-ms)")
     

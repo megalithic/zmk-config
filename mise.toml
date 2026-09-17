@@ -1,0 +1,31 @@
+min_version = "2026.9.0"
+
+[tools]
+go = "1.27"
+github-cli = "latest"
+python = "3.13"
+"go:github.com/new-er/zmk-flasher" = "v0.0.4"
+
+[tasks.check]
+description = "Validate Leeloo keymap and build matrix"
+run = "./scripts/firmware check"
+
+[tasks.status]
+description = "Show config, GitHub build, and downloaded firmware status"
+run = "./scripts/firmware status"
+
+[tasks.runs]
+description = "List recent GitHub firmware builds"
+run = "./scripts/firmware runs"
+
+[tasks.build]
+description = "Build current remote master with GitHub Actions and download firmware"
+run = "./scripts/firmware build"
+
+[tasks.download]
+description = "Download firmware from latest successful build of remote master"
+run = "./scripts/firmware download"
+
+[tasks.flash]
+description = "Interactively flash both Leeloo halves with zmk-flasher"
+run = "./scripts/firmware flash"

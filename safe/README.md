@@ -2,12 +2,17 @@
 
 Known-good firmware builds for recovering a bricked or misbehaving Leeloo keyboard.
 
-## Quick Recovery
+## Quick recovery
 
-```bash
-just recover          # Flash both halves with known-good firmware
-just recover-reset    # Clear BLE bonds first (if pairing issues)
+Recovery is manual because these files are old and do not match the active keymap. To flash the known-good pair deliberately:
+
+```sh
+mise exec -- zmk-flasher flash \
+  -l safe/seth_left.uf2 \
+  -r safe/seth_right.uf2
 ```
+
+Do not flash settings-reset firmware unless saved Bluetooth bonds must be erased.
 
 ## Firmware Files
 
@@ -22,12 +27,12 @@ just recover-reset    # Clear BLE bonds first (if pairing issues)
 
 ## When to Use
 
-**Use `just recover` if:**
+**Use the recovery pair if:**
 - Keys register incorrectly (e.g., N types M, M types comma)
 - Keyboard stops responding after flashing new firmware
 - BLE pairing completely broken after firmware change
 
-**Use `just recover-reset` first if:**
+**Consider settings reset first if:**
 - Split halves won't communicate
 - Keyboard won't pair with computer
 - Switching between test firmware and recovery
@@ -50,7 +55,7 @@ Board: `nice_nano_v2` (Zephyr 3.5 naming convention)
 ## Notes
 
 The firmware in this directory uses the **old ZMK board naming** (`nice_nano_v2`).
-Our current builds target Zephyr 4.1 which uses `nice_nano` (boards were restructured).
+Current builds target Zephyr 4.1 and use `nice_nano//zmk`.
 
 If building against Joey's fork for maximum compatibility:
 - Clone: `https://github.com/ClicketySplit/zmk` branch `chiisai_v1.13`

@@ -1,5 +1,8 @@
 on: [push, pull_request, workflow_dispatch]
-
+permissions:
+  contents: read
 jobs:
   build:
-    uses: zmkfirmware/zmk/.github/workflows/build-user-config.yml@main
+    # Keep this SHA aligned with config/west.yml.
+    # pi-lens-ignore: line-length
+    uses: zmkfirmware/zmk/.github/workflows/build-user-config.yml@9ebbeff0a8b69a42f14aec022cdf16c7a107b9e0

@@ -1,0 +1,306 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$root"
+
+repo="${ZMK_GITHUB_REPO:-megalithic/zmk-config}"
+workflow="${ZMK_GITHUB_WORKFLOW:-build.yml}"
+firmware_root="build/firmware"
+latest_run_file="$firmware_root/.latest-run"
+
+usage() {
+	cat <<'EOF'
+Usage: scripts/firmware <command>
+
+Commands:
+  check      Validate active keymap and GitHub build matrix
+  status     Show config, GitHub build, and downloaded firmware status
+  runs       List recent GitHub firmware builds
+  build      Dispatch GitHub build for remote master, wait, and download
+  download   Download latest successful firmware for remote master
+  flash      Flash both halves using latest downloaded firmware
+EOF
+}
+
+require_command() {
+	if ! command -v "$1" >/dev/null 2>&1; then
+		echo "ERROR: Required command not found: $1" >&2
+		echo "Run: mise install" >&2
+		exit 1
+	fi
+}
+
+remote_master_sha() {
+	gh api "repos/$repo/commits/master" --jq .sha
+}
+
+local_master_sha() {
+	if command -v jj >/dev/null 2>&1; then
+		jj log -r master --no-graph -T 'commit_id' 2>/dev/null
+	else
+		git rev-parse master
+	fi
+}
+
+working_copy_is_clean() {
+	if command -v jj >/dev/null 2>&1; then
+		[[ -z "$(jj diff --summary)" ]]
+	else
+		[[ -z "$(git status --porcelain)" ]]
+	fi
+}
+
+check() {
+	require_command python3
+	./scripts/validate-keymap config/leeloo.keymap
+
+	python3 - <<'PY'
+from pathlib import Path
+import re
+
+matrix = Path("build.yaml").read_text()
+keymap = Path("config/leeloo.keymap").read_text()
+west = Path("config/west.yml").read_text()
+workflow = Path(".github/workflows/build.yml").read_text()
+
+errors = []
+targets = re.findall(r"^\s*-\s+board:\s*(\S+)\s*$", matrix, re.MULTILINE)
+shields = re.findall(r"^\s+shield:\s*(\S+)\s*$", matrix, re.MULTILINE)
+west_revision = re.search(r"^\s+revision:\s*([0-9a-f]{40})\s*$", west, re.MULTILINE)
+workflow_revision = re.search(r"build-user-config\.yml@([0-9a-f]{40})", workflow)
+
+if targets != ["nice_nano//zmk", "nice_nano//zmk"]:
+    errors.append(f"build.yaml boards are {targets!r}; expected two nice_nano//zmk targets")
+if shields != ["leeloo_left", "leeloo_right"]:
+    errors.append(f"build.yaml shields are {shields!r}; expected leeloo_left and leeloo_right")
+if not west_revision:
+    errors.append("config/west.yml must pin ZMK to a full commit SHA")
+if not workflow_revision:
+    errors.append(".github/workflows/build.yml must pin its reusable workflow to a full commit SHA")
+if west_revision and workflow_revision and west_revision.group(1) != workflow_revision.group(1):
+    errors.append("config/west.yml and .github/workflows/build.yml pin different ZMK commits")
+if re.search(r"&reset(?:\s|$)", keymap):
+    errors.append("config/leeloo.keymap uses deprecated &reset; use &sys_reset")
+if re.search(r"(?:tapping_term_ms|quick_tap_ms|global_quick_tap)\s*=", keymap):
+    errors.append("config/leeloo.keymap contains deprecated underscore hold-tap properties")
+
+if errors:
+    for error in errors:
+        print(f"ERROR: {error}")
+    raise SystemExit(1)
+
+print("OK: build matrix targets nice_nano//zmk with leeloo_left and leeloo_right")
+PY
+
+	git diff --check
+}
+
+find_firmware() {
+	local dir="$1"
+	local side="$2"
+	python3 - "$dir" "$side" <<'PY'
+from pathlib import Path
+import sys
+
+root = Path(sys.argv[1])
+side = sys.argv[2]
+files = sorted(root.rglob(f"*{side}*.uf2"))
+if len(files) != 1:
+    print(f"ERROR: expected one {side} UF2 in {root}, found {len(files)}", file=sys.stderr)
+    for path in files:
+        print(f"  {path}", file=sys.stderr)
+    raise SystemExit(1)
+print(files[0])
+PY
+}
+
+download_run() {
+	local run_id="$1"
+	local dest="$firmware_root/$run_id"
+	local temp="$firmware_root/.download-$run_id-$$"
+
+	mkdir -p "$firmware_root"
+	if ! find_firmware "$dest" left >/dev/null 2>&1 || ! find_firmware "$dest" right >/dev/null 2>&1; then
+		mkdir -p "$temp"
+		gh run download "$run_id" --repo "$repo" --name firmware --dir "$temp"
+		find_firmware "$temp" left >/dev/null
+		find_firmware "$temp" right >/dev/null
+		if [[ -e "$dest" ]]; then
+			mv "$dest" "$dest.incomplete.$(date +%s)"
+		fi
+		mv "$temp" "$dest"
+	fi
+
+	local left right
+	left="$(find_firmware "$dest" left)"
+	right="$(find_firmware "$dest" right)"
+	printf '%s\n' "$run_id" >"$latest_run_file"
+
+	echo "Downloaded firmware:"
+	echo "  left:  $left"
+	echo "  right: $right"
+}
+
+latest_successful_run() {
+	local sha="$1"
+	gh run list \
+		--repo "$repo" \
+		--workflow "$workflow" \
+		--branch master \
+		--status success \
+		--limit 20 \
+		--json databaseId,headSha \
+		--jq ".[] | select(.headSha == \"$sha\") | .databaseId" |
+		awk 'NR == 1 { print; exit }'
+}
+
+build() {
+	require_command gh
+	check
+	gh auth status >/dev/null
+
+	if ! working_copy_is_clean; then
+		echo "ERROR: Working copy has uncommitted changes." >&2
+		echo "Commit and push them before building so GitHub sees this config." >&2
+		exit 1
+	fi
+
+	local local_sha remote_sha started run_id attempt
+	local_sha="$(local_master_sha)"
+	remote_sha="$(remote_master_sha)"
+	if [[ "$local_sha" != "$remote_sha" ]]; then
+		echo "ERROR: Local master and GitHub master differ." >&2
+		echo "  local:  $local_sha" >&2
+		echo "  remote: $remote_sha" >&2
+		echo "Push current master before building." >&2
+		exit 1
+	fi
+
+	started="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+	echo "Dispatching $workflow for $remote_sha..."
+	gh workflow run "$workflow" --repo "$repo" --ref master
+
+	run_id=""
+	for ((attempt = 0; attempt < 30; attempt++)); do
+		run_id="$(gh run list \
+			--repo "$repo" \
+			--workflow "$workflow" \
+			--branch master \
+			--event workflow_dispatch \
+			--limit 10 \
+			--json databaseId,headSha,createdAt \
+			--jq ".[] | select(.headSha == \"$remote_sha\" and .createdAt >= \"$started\") | .databaseId" |
+			awk 'NR == 1 { print; exit }')"
+		[[ -n "$run_id" ]] && break
+		sleep 2
+	done
+
+	if [[ -z "$run_id" ]]; then
+		echo "ERROR: Timed out waiting for GitHub Actions run to appear." >&2
+		exit 1
+	fi
+
+	echo "Watching run $run_id..."
+	gh run watch "$run_id" --repo "$repo" --exit-status
+	download_run "$run_id"
+}
+
+download() {
+	require_command gh
+	gh auth status >/dev/null
+
+	local sha run_id
+	sha="$(remote_master_sha)"
+	run_id="$(latest_successful_run "$sha")"
+	if [[ -z "$run_id" ]]; then
+		echo "ERROR: No successful firmware build found for remote master $sha." >&2
+		exit 1
+	fi
+	download_run "$run_id"
+}
+
+latest_firmware_dir() {
+	if [[ ! -f "$latest_run_file" ]]; then
+		echo "ERROR: No downloaded firmware selected. Run: mise run download" >&2
+		exit 1
+	fi
+
+	local run_id
+	run_id="$(cat "$latest_run_file")"
+	if [[ ! -d "$firmware_root/$run_id" ]]; then
+		echo "ERROR: Firmware directory missing for run $run_id." >&2
+		exit 1
+	fi
+	printf '%s\n' "$firmware_root/$run_id"
+}
+
+flash() {
+	require_command zmk-flasher
+	require_command python3
+
+	local dir left right
+	dir="$(latest_firmware_dir)"
+	left="$(find_firmware "$dir" left)"
+	right="$(find_firmware "$dir" right)"
+
+	echo "Flashing Leeloo v1.13 with:"
+	echo "  central/left:      $left"
+	echo "  peripheral/right: $right"
+	echo
+	echo "Connect only the half requested by zmk-flasher, then double-tap its reset button."
+	zmk-flasher flash -l "$left" -r "$right"
+}
+
+status() {
+	check
+	echo
+	python3 - <<'PY'
+from pathlib import Path
+import re
+
+text = Path("config/leeloo.keymap").read_text()
+block = re.search(r"hml:\s+home_row_mod_left\s*\{(.*?)\n\s*\};", text, re.DOTALL)
+if not block:
+    raise SystemExit("ERROR: hml behavior not found")
+print("Left home-row mod:")
+for name in ("flavor", "tapping-term-ms", "quick-tap-ms", "require-prior-idle-ms"):
+    match = re.search(rf"{re.escape(name)}\s*=\s*([^;]+);", block.group(1))
+    if match:
+        print(f"  {name}: {match.group(1).strip('<>\"')}")
+PY
+
+	if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+		echo
+		gh run list --repo "$repo" --workflow "$workflow" --limit 5
+	fi
+
+	if [[ -f "$latest_run_file" ]]; then
+		echo
+		echo "Latest downloaded run: $(cat "$latest_run_file")"
+		local dir
+		dir="$(latest_firmware_dir)"
+		find_firmware "$dir" left
+		find_firmware "$dir" right
+	fi
+}
+
+runs() {
+	require_command gh
+	gh run list --repo "$repo" --workflow "$workflow" --limit 10
+}
+
+case "${1:-}" in
+check) check ;;
+status) status ;;
+runs) runs ;;
+build) build ;;
+download) download ;;
+flash) flash ;;
+-h | --help | help | "") usage ;;
+*)
+	echo "ERROR: Unknown command: $1" >&2
+	usage >&2
+	exit 2
+	;;
+esac
